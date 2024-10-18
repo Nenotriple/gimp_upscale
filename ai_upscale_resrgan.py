@@ -1,10 +1,12 @@
 from gimpfu import *
-import subprocess
 import os
 import tempfile
+import subprocess
+
 
 # Available models
 MODELS = ["realesr-animevideov3-x4", "RealESRGAN_General_x4_v3", "realesrgan-x4plus", "realesrgan-x4plus-anime"]
+
 
 def upscale_with_third_party(image, drawable, scale_factor, model_index):
     # Start the undo group
@@ -74,6 +76,7 @@ def upscale_with_third_party(image, drawable, scale_factor, model_index):
         # End the undo group (regardless of success or error)
         pdb.gimp_image_undo_group_end(image)  # Group end for undo/redo
 
+
 # Register the function with GIMP
 register(
     "python_fu_upscale_with_resrgan",
@@ -89,5 +92,6 @@ register(
     [],
     upscale_with_third_party
 )
+
 
 main()
