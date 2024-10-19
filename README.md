@@ -52,7 +52,7 @@ You can check the plugin directory by going to: `GIMP > Edit > Preferences > Fol
 <br>
 
 
-# 📝 Usage:
+# 📝 Usage
 
 1) Open an image in GIMP
 
