@@ -39,3 +39,10 @@ You can check the plugin directory by going to: `GIMP > Edit > Preferences > Fol
 4) Wait for the image to be upscaled.
 
 <br>
+
+
+# 👥 Thanks!
+
+- [GIMP](https://www.gimp.org/) - *GPL-3.0*
+
+- [xinntao - Real-ESRGAN_portable](https://github.com/xinntao/Real-ESRGAN#portable-executable-files-ncnn) - *BSD-3-Clause license*
