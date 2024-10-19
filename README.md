@@ -1,4 +1,5 @@
 <h1 align="center">
+  <img src="https://github.com/user-attachments/assets/fd0b3a53-7240-4a01-8dff-5dcf4d0ca46b" alt="icon" width="50">
   gimp_upscale
 </h1>
 
