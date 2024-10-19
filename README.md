@@ -14,7 +14,7 @@
 
 
 <p align="center">
-  *(realesr-animevideov3, x1)*
+  <em>(realesr-animevideov3, x1)</em>
 </p>
 
 
