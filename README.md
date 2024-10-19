@@ -2,29 +2,26 @@
   gimp_upscale
 </h1>
 
+
 <p align="center">
   Upscale the current image using RESRGAN directly within GIMP
 </p>
-
 
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/a8b6a88e-a438-462e-8b97-e1e8091df748" alt="cover" width=512>
 </p>
 
+
 <p align="center">
   *(realesr-animevideov3, x1)*
 </p>
 
 
-
----
 > [!NOTE]
 > Supports: `realesr-animevideov3-x4`, `RealESRGAN_General_x4_v3`, `realesrgan-x4plus`, `realesrgan-x4plus-anime`
 > 
 > Scale to any factor between, 1x to 4x.
-
----
 
 
 <br>
