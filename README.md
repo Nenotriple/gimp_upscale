@@ -20,7 +20,9 @@
 
 
 > [!NOTE]
-> Supports: `realesr-animevideov3-x4`, `RealESRGAN_General_x4_v3`, `realesrgan-x4plus`, `realesrgan-x4plus-anime`
+> Supported Models: `realesr-animevideov3-x4`, `RealESRGAN_General_x4_v3`, `realesrgan-x4plus`, `realesrgan-x4plus-anime`
+>
+> Supported GPU: `Intel`, `AMD`, `Nvidia`
 > 
 > Scale to any factor between, 1x to 4x
 >
