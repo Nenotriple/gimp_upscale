@@ -20,13 +20,10 @@
 
 
 > [!NOTE]
-> Supported Models: `realesr-animevideov3-x4`, `RealESRGAN_General_x4_v3`, `realesrgan-x4plus`, `realesrgan-x4plus-anime`
->
-> Supported GPU: `Intel`, `AMD`, `Nvidia`
-> 
-> Scale to any factor between, 1x to 4x
->
-> Currently, only `Windows OS` is supported. If you're interested in testing a `Linux` or `Mac` plug-in, please create an issue.
+> - Supported Models: `realesr-animevideov3-x4`, `RealESRGAN_General_x4_v3`, `realesrgan-x4plus`, `realesrgan-x4plus-anime`
+> - Supported GPU: `Intel`, `AMD`, `Nvidia`
+> - Scale to any factor between, 1x to 4x
+> - Currently, only `Windows OS` is supported. If you're interested in testing a `Linux` or `Mac` plug-in, please create an issue.
 
 
 <br>
