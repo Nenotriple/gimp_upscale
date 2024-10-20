@@ -163,3 +163,50 @@ register(
 
 
 main()
+
+
+
+# --------------------------------------
+# Changelog
+# --------------------------------------
+'''
+
+
+[💾v1.01](https://github.com/Nenotriple/gimp_upscale/releases/tag/v1.01)
+
+
+<details>
+  <summary>Release Notes for v1.01</summary>
+
+
+### New:
+- You can now upscale only the selected content.
+  - The selection will be upscaled and pasted back into the original position on a new layer.
+  - The scale factor is always "1x" when upscaling the selection.
+
+
+### Fixed:
+- Fixed the issue where the script would fail when using a scale factor other than 1x.
+
+
+### Other changes:
+- Refactored and organized.
+
+
+
+'''
+# --------------------------------------
+# Todo/Tofix
+# --------------------------------------
+'''
+
+
+- Todo
+  -
+
+
+- Tofix
+  -
+
+
+'''
