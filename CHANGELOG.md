@@ -7,9 +7,16 @@
 
 
 ### New:
-- You can now upscale only the selected content.
-  - The selection will be upscaled and pasted back into the original position on a new layer.
+- **Upscale Selected Content**:
+  - Upscale only the selected content.
+  - The selection is upscaled and pasted back into the original position on a new layer.
   - The scale factor is always "1x" when upscaling the selection.
+- **Load Additional Models**:
+  - Load additional models in NCNN format.
+  - The script searches for models in the `resrgan\models` folder.
+  - Each model must include a `model.param` and a `model.bin` file.
+- **New Models**:
+  - Two additional models: `4x-UltraSharp` and `4x-AnimeSharp`.
 
 
 ### Fixed:
@@ -17,7 +24,7 @@
 
 
 ### Other changes:
-- Refactored and organized.
+- Refactored and organized the code.
 
 
 </details>
