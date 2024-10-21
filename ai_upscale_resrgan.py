@@ -7,7 +7,7 @@
 
 Description:
 -------------
-Upscale directly within GIMP using ESRGAN models.
+Upscale directly within GIMP using ESRGAN/NCNN models.
 
 More info here: https://github.com/Nenotriple/gimp_upscale
 
@@ -29,15 +29,54 @@ from gimpfu import *
 
 
 # --------------------------------------
-# Constants
+# Update the list of available models
+# --------------------------------------
+
+def find_additional_models():
+    '''Function to find additional upscale models in the "resrgan/models" folder'''
+    script_dir = os.path.dirname(os.path.realpath(__file__))
+    models_dir = os.path.join(script_dir, "resrgan/models")
+    # List all files in the models directory
+    all_files = os.listdir(models_dir)
+    # Filter out .bin and .param files
+    bin_files = {os.path.splitext(f)[0] for f in all_files if f.endswith('.bin')}
+    param_files = {os.path.splitext(f)[0] for f in all_files if f.endswith('.param')}
+    # Find paired models
+    paired_models = bin_files & param_files
+    # Hardcoded models to ignore
+    hardcoded_models = {
+        "realesr-animevideov3-x2",
+        "realesr-animevideov3-x3",
+        "realesr-animevideov3-x4",
+        "RealESRGAN_General_x4_v3",
+        "realesrgan-x4plus",
+        "realesrgan-x4plus-anime",
+        "UltraSharp-4x",
+        "AnimeSharp-4x"
+        }
+    # Exclude hardcoded models
+    additional_models = [model for model in paired_models if model not in hardcoded_models]
+    return additional_models
+
+
+# --------------------------------------
+# List of available models
 # --------------------------------------
 
 
+# Hardcoded model list
+HARDCODED_MODELS = [
+    "realesr-animevideov3-x4",
+    "RealESRGAN_General_x4_v3",
+    "realesrgan-x4plus",
+    "realesrgan-x4plus-anime",
+    "UltraSharp-4x",
+    "AnimeSharp-4x"
+    ]
+
+
 # Available models
-MODELS = ["realesr-animevideov3-x4",
-          "RealESRGAN_General_x4_v3",
-          "realesrgan-x4plus",
-          "realesrgan-x4plus-anime"]
+MODELS = HARDCODED_MODELS + find_additional_models()
 
 
 # --------------------------------------
@@ -62,7 +101,7 @@ def run_resrgan(temp_input_file, temp_output_file, model):
         "-i", temp_input_file,
         "-o", temp_output_file,
         "-n", model
-    ])
+        ])
     upscale_process.wait()
 
 
@@ -106,8 +145,8 @@ def load_upscaled_image(image, drawable, temp_output_file, output_factor, upscal
     pdb.gimp_image_delete(upscaled_image)
 
 
-def upscale_with_resrgan(image, drawable, model_index, output_factor, upscale_selection):
-    '''Main function to upscale the image using RESRGAN'''
+def upscale_with_ncnn(image, drawable, model_index, output_factor, upscale_selection):
+    '''Main function to upscale the image using realesrgan-ncnn-vulkan.exe'''
     pdb.gimp_image_undo_group_start(image)
     try:
         if upscale_selection and pdb.gimp_selection_is_empty(image):
@@ -128,7 +167,12 @@ def upscale_with_resrgan(image, drawable, model_index, output_factor, upscale_se
         model = MODELS[model_index]
         run_resrgan(temp_input_file, temp_output_file, model)
         # Load the upscaled image back into GIMP
-        load_upscaled_image(image, selected_layer, temp_output_file, output_factor, upscale_selection)
+        load_upscaled_image(image,
+                            selected_layer,
+                            temp_output_file,
+                            output_factor,
+                            upscale_selection
+                            )
         # Clean up temporary files
         os.remove(temp_input_file)
         os.remove(temp_output_file)
@@ -137,29 +181,28 @@ def upscale_with_resrgan(image, drawable, model_index, output_factor, upscale_se
         pdb.gimp_image_undo_group_end(image)
 
 
-
 # --------------------------------------
 # Register the function with GIMP
 # --------------------------------------
 
 
 register(
-    "nenotriple_upscale_with_resrgan",
-    "Upscale using RESRGAN",
-    "Upscale using RESRGAN",
+    "Nenotriple_upscale-with-NCNN",
+    "Upscale using NCNN",
+    "Upscale using NCNN",
     "github/Nenotriple", "github/Nenotriple/gimp_upscale", "2024",
-    "<Image>/Filters/Enhance/AI Upscale (RESRGAN)...",
+    "<Image>/Filters/Enhance/AI Upscale (NCNN)...",
     "*",
     [
         # Model selection
         (PF_OPTION, "model_index", "Model", 0, MODELS),
-        # Output size factor
-        (PF_SPINNER, "output_factor", "Output Size Factor", 1.0, (1.00, 4.00, 0.01)),
         # Option to upscale only the selected content
-        (PF_TOGGLE, "upscale_selection", "Upscale Only Selection", False)
+        (PF_OPTION, "upscale_selection", "Upscale Input", 0, ["From Layer", "From Selection"]),
+        # Output size factor
+        (PF_SPINNER, "output_factor", "Output Size Factor", 1.0, (1.00, 4.00, 0.01))
     ],
     [],
-    upscale_with_resrgan)
+    upscale_with_ncnn)
 
 
 main()
