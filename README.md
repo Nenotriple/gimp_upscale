@@ -5,7 +5,7 @@
 
 
 <p align="center">
-  Upscale the current image using RESRGAN directly within GIMP
+  Upscale directly within GIMP using realesrgan-ncnn-vulkan
 </p>
 
 
@@ -20,18 +20,30 @@
 
 
 > [!NOTE]
-> - Supported Models: `realesr-animevideov3-x4`, `RealESRGAN_General_x4_v3`, `realesrgan-x4plus`, `realesrgan-x4plus-anime`
-> - Supported GPU: `Intel`, `AMD`, `Nvidia`
-> - Scale to any factor between, 1x to 4x
+> - Included Models: `realesr-animevideov3-x4, RealESRGAN_General_x4_v3, realesrgan-x4plus, realesrgan-x4plus-anime, UltraSharp-4x, AnimeSharp-4x`
 > - Currently, only `Windows OS` is supported. If you're interested in testing a `Linux` or `Mac` plug-in, please create an issue.
 
 
 <br>
 
 
+> [!TIP]
+> - Scale to any factor between, 1x to 4x
+> - Upscale the entire layer, or just the selection.
+> - Add your own models (NCNN) to the `resrgan\models` folder.
+>   - Please ensure that the model includes a `model.param` and a `model.bin` file.
+
+
+<br>
+
+
 # 💾 Install
+![Static Badge](https://img.shields.io/badge/Intel-blue) ![Static Badge](https://img.shields.io/badge/AMD-red) ![Static Badge](https://img.shields.io/badge/Nvidia-green)
+
+
 ![Static Badge](https://img.shields.io/badge/Windows-gray)
 ![Static Badge](https://img.shields.io/badge/GIMP-2.10%2B-green)
+
 
 ### Method 1
 1) Download the latest release from the [releases page](https://github.com/Nenotriple/gimp_upscale/releases/tag/v1.0)
@@ -55,8 +67,8 @@
 
 
 1) Open an image in GIMP
-2) Go to `Filters > Enhance > AI Upscale (RESRGAN)...`
-3) Choose the desired upscale factor and click `OK`
+2) Go to `Filters > Enhance > AI Upscale (NCNN)...`
+3) Choose the desired settings and click `OK`
 4) Wait for the image to be upscaled
 
 
