@@ -20,7 +20,13 @@
 
 
 > [!NOTE]
-> - Included Models: `realesr-animevideov3-x4, RealESRGAN_General_x4_v3, realesrgan-x4plus, realesrgan-x4plus-anime, UltraSharp-4x, AnimeSharp-4x`
+> - Included Models:
+>   - `realesr-animevideov3-x4`
+>   - `RealESRGAN_General_x4_v3`
+>   - `realesrgan-x4plus`
+>   - `realesrgan-x4plus-anime`
+>   - `UltraSharp-4x`
+>   - `AnimeSharp-4x`
 > - Currently, only `Windows OS` is supported. If you're interested in testing a `Linux` or `Mac` plug-in, please create an issue.
 
 
@@ -31,7 +37,9 @@
 > - Scale to any factor between, 1x to 4x
 > - Upscale the entire layer, or just the selection.
 > - Add your own models (NCNN) to the `resrgan\models` folder.
+>   - Additional models can be found at https://openmodeldb.info/
 >   - Please ensure that the model includes a `model.param` and a `model.bin` file.
+>   - Models can be converted to NCNN format with tools like [Chainner](https://github.com/chaiNNer-org/chaiNNer)
 
 
 <br>
