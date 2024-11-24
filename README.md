@@ -54,7 +54,7 @@
 
 
 ### Method 1
-1) Download the latest release from the [releases page](https://github.com/Nenotriple/gimp_upscale/releases/tag/v1.0)
+1) Download the latest release from the [releases page](https://github.com/Nenotriple/gimp_upscale/releases)
 2) Extract the zip file to your GIMP plugins directory, which is usually located at:
    - `C:\Users\%USERNAME%\AppData\Roaming\GIMP\2.10\plug-ins`
    - `C:\Program Files\GIMP 2\lib\gimp\2.0\plug-ins`
