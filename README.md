@@ -35,7 +35,7 @@
 
 > [!TIP]
 > - Scale to any factor between, 1x to 4x
-> - Upscale the entire layer, or just the selection.
+> - Upscale the entire layer, or just the selection, including feathered selection.
 > - Add your own models (NCNN) to the `resrgan\models` folder.
 >   - Additional models can be found at https://openmodeldb.info/
 >   - Please ensure that the model includes a `model.param` and a `model.bin` file.
