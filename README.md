@@ -25,6 +25,9 @@
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/Nenotriple/gimp_upscale)
 
 
+<br>
+
+
 > [!NOTE]
 > - Included Models:
 >   - `realesr-animevideov3-x4`
