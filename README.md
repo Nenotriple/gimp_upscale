@@ -25,6 +25,9 @@
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/Nenotriple/gimp_upscale)
 
 
+![gimp_upscale-app_preview](https://github.com/user-attachments/assets/ce277906-bc56-4bad-b218-aceaf4ba5c35)
+
+
 <br>
 
 
