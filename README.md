@@ -19,6 +19,12 @@
 </p>
 
 
+![GitHub repo size](https://img.shields.io/github/repo-size/Nenotriple/gimp_upscale)
+[![Hits](https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2FNenotriple%2Fgimp_upscale&count_bg=%2379C83D&title_bg=%23555555&icon=&icon_color=%23E7E7E7&title=hits&edge_flat=false)](https://hits.seeyoufarm.com)
+![GitHub all release downloads](https://img.shields.io/github/downloads/Nenotriple/gimp_upscale/total)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/Nenotriple/gimp_upscale)
+
+
 > [!NOTE]
 > - Included Models:
 >   - `realesr-animevideov3-x4`
