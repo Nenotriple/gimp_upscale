@@ -51,7 +51,7 @@
 
 
 ### v1.00
-[💾](https://github.com/Nenotriple/gimp_upscale/releases/tag/v1.00)
+[💾](https://github.com/Nenotriple/gimp_upscale/releases/tag/v1.0)
 
 
 <details>
