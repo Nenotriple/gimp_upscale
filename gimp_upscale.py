@@ -1,7 +1,10 @@
+#!/usr/bin/env python
+
+
 """
 ########################################
 #             gimp_upscale             #
-#   Version : v1.01                    #
+#   Version : v1.03                    #
 #   Author  : github.com/Nenotriple    #
 ########################################
 
@@ -33,6 +36,18 @@ from gimpfu import *
 # Update the list of available models
 # --------------------------------------
 
+
+# Predefined model list
+HARDCODED_MODELS = [
+    "realesr-animevideov3-x4",
+    "RealESRGAN_General_x4_v3",
+    "realesrgan-x4plus",
+    "realesrgan-x4plus-anime",
+    "UltraSharp-4x",
+    "AnimeSharp-4x"
+]
+
+
 def _find_additional_models():
     '''Function to find additional upscale models in the "resrgan/models" folder'''
     script_dir = os.path.dirname(os.path.realpath(__file__))
@@ -44,36 +59,9 @@ def _find_additional_models():
     param_files = {os.path.splitext(f)[0] for f in all_files if f.endswith('.param')}
     # Find paired models
     paired_models = bin_files & param_files
-    # Hardcoded models to ignore
-    hardcoded_models = {
-        "realesr-animevideov3-x2",
-        "realesr-animevideov3-x3",
-        "realesr-animevideov3-x4",
-        "RealESRGAN_General_x4_v3",
-        "realesrgan-x4plus",
-        "realesrgan-x4plus-anime",
-        "UltraSharp-4x",
-        "AnimeSharp-4x"
-        }
-    # Return models that are not hardcoded
-    additional_models = [model for model in paired_models if model not in hardcoded_models]
-    return additional_models
-
-
-# --------------------------------------
-# List of available models
-# --------------------------------------
-
-
-# Predefined model list
-HARDCODED_MODELS = [
-    "realesr-animevideov3-x4",
-    "RealESRGAN_General_x4_v3",
-    "realesrgan-x4plus",
-    "realesrgan-x4plus-anime",
-    "UltraSharp-4x",
-    "AnimeSharp-4x"
-    ]
+    # Filter out hardcoded models
+    models = [model for model in paired_models if model not in HARDCODED_MODELS]
+    return models
 
 
 # Combine predefined models with additional discovered models
