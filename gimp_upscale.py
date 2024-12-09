@@ -23,6 +23,7 @@ More info here: https://github.com/Nenotriple/gimp_upscale
 import os
 import tempfile
 import subprocess
+import platform
 
 # GIMP Library
 from gimpfu import *
@@ -110,7 +111,12 @@ def _export_image_to_temp(image, drawable):
 def _run_resrgan(temp_input_file, temp_output_file, model):
     '''Upscale the image using the RESRGAN executable'''
     script_dir = os.path.dirname(os.path.realpath(__file__))
-    resrgan_exe = os.path.join(script_dir, "resrgan/realesrgan-ncnn-vulkan.exe")
+    if platform.system() == "Windows":
+        resrgan_exe = os.path.join(script_dir, "resrgan/realesrgan-ncnn-vulkan.exe")
+    else:
+        resrgan_exe = os.path.join(script_dir, "resrgan/realesrgan-ncnn-vulkan")
+        # Make sure the executable has the correct permissions
+        subprocess.call(['chmod', 'u+x', resrgan_exe])
     upscale_process = subprocess.Popen([
         resrgan_exe,
         "-i", temp_input_file,
