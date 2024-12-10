@@ -25,16 +25,25 @@ More info here: https://github.com/Nenotriple/gimp_upscale
 # Standard Library
 import os
 import tempfile
-import subprocess
 import platform
+import subprocess
+
 
 # GIMP Library
-from gimpfu import *
+from gimpfu import main, register, pdb, RGBA_IMAGE, NORMAL_MODE, PF_OPTION, PF_TOGGLE, PF_SPINNER  # type: ignore
 
 
 # --------------------------------------
-# Update the list of available models
+# Global Variables
 # --------------------------------------
+
+
+# Directory of the script
+SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
+
+
+# Directory of the models
+MODEL_DIR = os.path.join(SCRIPT_DIR, "resrgan/models")
 
 
 # Predefined model list
@@ -48,12 +57,15 @@ HARDCODED_MODELS = [
 ]
 
 
+# --------------------------------------
+# Update the list of available models
+# --------------------------------------
+
+
 def _find_additional_models():
     '''Function to find additional upscale models in the "resrgan/models" folder'''
-    script_dir = os.path.dirname(os.path.realpath(__file__))
-    models_dir = os.path.join(script_dir, "resrgan/models")
     # List all files in the models directory
-    all_files = os.listdir(models_dir)
+    all_files = os.listdir(MODEL_DIR)
     # Filter out .bin and .param files
     bin_files = {os.path.splitext(f)[0] for f in all_files if f.endswith('.bin')}
     param_files = {os.path.splitext(f)[0] for f in all_files if f.endswith('.param')}
@@ -98,11 +110,10 @@ def _export_image_to_temp(image, drawable):
 
 def _run_resrgan(temp_input_file, temp_output_file, model):
     '''Upscale the image using the RESRGAN executable'''
-    script_dir = os.path.dirname(os.path.realpath(__file__))
     if platform.system() == "Windows":
-        resrgan_exe = os.path.join(script_dir, "resrgan/realesrgan-ncnn-vulkan.exe")
-    else:
-        resrgan_exe = os.path.join(script_dir, "resrgan/realesrgan-ncnn-vulkan")
+        resrgan_exe = os.path.join(SCRIPT_DIR, "resrgan/realesrgan-ncnn-vulkan.exe")
+    else:  # Linux
+        resrgan_exe = os.path.join(SCRIPT_DIR, "resrgan/realesrgan-ncnn-vulkan")
         # Make sure the executable has the correct permissions
         subprocess.call(['chmod', 'u+x', resrgan_exe])
     upscale_process = subprocess.Popen([
@@ -159,6 +170,11 @@ def _cleanup_temp_files(image, selected_layer, temp_input_file, temp_output_file
     if not keep_copy_layer and upscale_selection:
         pdb.gimp_image_remove_layer(image, selected_layer)
     pdb.gimp_displays_flush()
+
+
+# --------------------------------------
+# Primary Function
+# --------------------------------------
 
 
 def upscale_with_ncnn(image, drawable, model_index, upscale_selection, keep_copy_layer, output_factor):
