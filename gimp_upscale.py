@@ -177,7 +177,7 @@ def _cleanup_temp_files(image, selected_layer, temp_input_file, temp_output_file
 # --------------------------------------
 
 
-def upscale_with_ncnn(image, drawable, model_index, upscale_selection, keep_copy_layer, output_factor):
+def execute_upscale_process(image, drawable, model_index, upscale_selection, keep_copy_layer, output_factor):
     '''Main function that orchestrates the upscaling process using realesrgan-ncnn-vulkan.'''
     pdb.gimp_image_undo_group_start(image)
     try:
@@ -203,16 +203,16 @@ def upscale_with_ncnn(image, drawable, model_index, upscale_selection, keep_copy
 
 
 register(
-    proc_name="python-fu-upscale-with-ncnn",
-    blurb="Upscale using AI-powered ESRGAN models\t\n---\t\ngithub.com/Nenotriple/gimp_upscale\t",
-    help="This plugin provides AI-powered image upscaling using ESRGAN/NCNN models; github.com/Nenotriple/gimp_upscale",
-    author="github.com/Nenotriple",
-    copyright="github/Nenotriple; MIT-LICENSE; 2024;",
-    date="2024",
-    label="AI Upscale (NCNN)...",
-    menu="<Image>/Filters/Enhance",
-    imagetypes="*",
-    params=[
+    proc_name = "python-fu-upscale-with-ncnn",
+    blurb = "Upscale using AI-powered ESRGAN models\t\n---\t\ngithub.com/Nenotriple/gimp_upscale\t",
+    help = "This plugin provides AI-powered image upscaling using ESRGAN/NCNN models; github.com/Nenotriple/gimp_upscale",
+    author = "github.com/Nenotriple",
+    copyright = "github/Nenotriple; MIT-LICENSE; 2024;",
+    date = "2024",
+    label = "AI Upscale (NCNN)...",
+    menu = "<Image>/Filters/Enhance",
+    imagetypes = "*",
+    params = [
         (PF_IMAGE, "image", "Input Image", None),
         (PF_DRAWABLE, "drawable", "Input Drawable", None),
         (PF_OPTION, "model_index", "AI Model", 0, MODELS),
@@ -220,8 +220,8 @@ register(
         (PF_TOGGLE, "keep_copy_layer", "Keep Selection Copy", False),
         (PF_SPINNER, "output_factor", "Size Factor", 1.0, (1.00, 4.00, 0.01))
     ],
-    results=[],
-    function=upscale_with_ncnn,
+    results = [],
+    function = execute_upscale_process,
 )
 
 
