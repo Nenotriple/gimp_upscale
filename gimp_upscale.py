@@ -30,7 +30,7 @@ import subprocess
 
 
 # GIMP Library
-from gimpfu import main, register, pdb, RGBA_IMAGE, NORMAL_MODE, PF_OPTION, PF_TOGGLE, PF_SPINNER  # type: ignore
+from gimpfu import main, register, pdb, RGBA_IMAGE, NORMAL_MODE, PF_OPTION, PF_TOGGLE, PF_SPINNER, PF_IMAGE, PF_DRAWABLE  # type: ignore
 
 
 # --------------------------------------
@@ -203,20 +203,27 @@ def upscale_with_ncnn(image, drawable, model_index, upscale_selection, keep_copy
 
 
 register(
-    "Nenotriple_upscale-with-NCNN",
-    "Upscale using NCNN",
-    "Upscale images using realesrgan-ncnn-vulkan.",
-    "github/Nenotriple", "github/Nenotriple/gimp_upscale", "2024",
-    "<Image>/Filters/Enhance/AI Upscale (NCNN)...",
-    "*",
-    [
-        (PF_OPTION, "model_index", "Model", 0, MODELS),
-        (PF_OPTION, "upscale_selection", "Upscale Input", 0, ["From Layer", "From Selection"]),
-        (PF_TOGGLE, "keep_copy_layer", "Keep Copy of Selection", False),
-        (PF_SPINNER, "output_factor", "Output Size Factor", 1.0, (1.00, 4.00, 0.01))
+    proc_name="python-fu-upscale-with-ncnn",
+    blurb="Upscale using AI-powered ESRGAN models\t\n---\t\ngithub.com/Nenotriple/gimp_upscale\t",
+    help="This plugin provides AI-powered image upscaling using ESRGAN/NCNN models; github.com/Nenotriple/gimp_upscale",
+    author="github.com/Nenotriple",
+    copyright="github/Nenotriple; MIT-LICENSE; 2024;",
+    date="2024",
+    label="AI Upscale (NCNN)...",
+    menu="<Image>/Filters/Enhance",
+    imagetypes="*",
+    params=[
+        (PF_IMAGE, "image", "Input Image", None),
+        (PF_DRAWABLE, "drawable", "Input Drawable", None),
+        (PF_OPTION, "model_index", "AI Model", 0, MODELS),
+        (PF_OPTION, "upscale_selection", "Input Source", 0, ["Layer", "Selection"]),
+        (PF_TOGGLE, "keep_copy_layer", "Keep Selection Copy", False),
+        (PF_SPINNER, "output_factor", "Size Factor", 1.0, (1.00, 4.00, 0.01))
     ],
-    [],
-    upscale_with_ncnn)
+    results=[],
+    function=upscale_with_ncnn,
+)
 
 
 main()
+
