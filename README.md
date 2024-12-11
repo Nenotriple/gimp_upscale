@@ -39,7 +39,7 @@
 >   - `realesrgan-x4plus-anime`
 >   - `UltraSharp-4x`
 >   - `AnimeSharp-4x`
-> - Currently, only `Windows OS` is supported. If you're interested in testing a `Linux` or `Mac` plug-in, please create an issue.
+> - Currently, only `Windows` and `Linux` are supported. If you're interested in testing the `Mac` plug-in, please create an issue.
 
 
 <br>
@@ -48,7 +48,7 @@
 > [!TIP]
 > - Scale to any factor between, 1x to 4x
 > - Upscale the entire layer, or just the selection, including feathered selection.
-> - Add your own models (NCNN) to the `resrgan\models` folder.
+> - Add your own models (NCNN) to the `resrgan/models` folder.
 >   - Additional models can be found at https://openmodeldb.info/
 >   - Please ensure that the model includes a `model.param` and a `model.bin` file.
 >   - Models can be converted to NCNN format with tools like [Chainner](https://github.com/chaiNNer-org/chaiNNer)
@@ -58,26 +58,71 @@
 
 
 # 💾 Install
-![Static Badge](https://img.shields.io/badge/Intel-blue) ![Static Badge](https://img.shields.io/badge/AMD-red) ![Static Badge](https://img.shields.io/badge/Nvidia-green)
-
-
-![Static Badge](https://img.shields.io/badge/Windows-gray)
 ![Static Badge](https://img.shields.io/badge/GIMP-2.10%2B-green)
 
 
+![Static Badge](https://img.shields.io/badge/Windows-blue)
+![Static Badge](https://img.shields.io/badge/Linux-orange)
+
+
+![Static Badge](https://img.shields.io/badge/Intel-blue) ![Static Badge](https://img.shields.io/badge/AMD-red) ![Static Badge](https://img.shields.io/badge/Nvidia-green)
+
+
+### Find your GIMP plug-in directory:
+- `GIMP > Edit > Preferences > Folders > Plug-ins`
+
+
+<details>
+<summary>Default GIMP plug-in directory for Windows:</summary>
+
+- `C:\Users\%USERNAME%\AppData\Roaming\GIMP\2.10\plug-ins`
+- `C:\Program Files\GIMP 2\lib\gimp\2.0\plug-ins`
+
+</details>
+
+
+<details>
+<summary>Default GIMP plug-in directory for Linux:</summary>
+
+- `~/.config/GIMP/2.10/plug-ins`
+- `~/.gimp-2.10/plug-ins`
+
+</details>
+
+
 ### Method 1
-1) Download the latest release from the [releases page](https://github.com/Nenotriple/gimp_upscale/releases)
-2) Extract the zip file to your GIMP plugins directory, which is usually located at:
-   - `C:\Users\%USERNAME%\AppData\Roaming\GIMP\2.10\plug-ins`
-   - `C:\Program Files\GIMP 2\lib\gimp\2.0\plug-ins`
+1) Download the [latest release](https://github.com/Nenotriple/gimp_upscale/releases)
+2) Extract the zip file to your GIMP plugins directory
 3) Restart GIMP
 
 
 ### Method 2
 1) Clone this repo
 2) Open GIMP and go to: `GIMP > Edit > Preferences > Folders > Plug-ins`
-3) Add the cloned repo path to your plug-ins
+3) Add the repo path to your plug-in folders
 4) Restart GIMP
+
+
+### Example directory structure:
+GIMP plug-ins must be in a folder structure like this:
+
+```plaintext
+plug-ins
+|
+└── gimp_upscale
+    |
+    └── gimp_upscale.py
+```
+
+
+### Additional information for Linux:
+Setting up Python in GIMP on Linux may require additional steps.
+
+If you're having trouble, you can check the resources below:
+- The official [GIMP download page](https://www.gimp.org/downloads/).
+  - The flatpak version of GIMP should come with Python support.
+- Prebuilt GIMP Appimages; eg. [From here,](https://github.com/aferrero2707/gimp-appimage/releases/tag/continuous) or [from here,](https://github.com/TasMania17/Gimp-Appimages-Made-From-Debs/releases/tag/Gimp-v3.0.0rc1) etc.
+- Install `gimp-python` from your package manager.
 
 
 <br>

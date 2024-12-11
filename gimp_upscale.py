@@ -1,7 +1,10 @@
+#!/usr/bin/env python
+
+
 """
 ########################################
 #             gimp_upscale             #
-#   Version : v1.01                    #
+#   Version : v1.03                    #
 #   Author  : github.com/Nenotriple    #
 ########################################
 
@@ -22,46 +25,38 @@ More info here: https://github.com/Nenotriple/gimp_upscale
 # Standard Library
 import os
 import tempfile
+import platform
 import subprocess
 
+
 # GIMP Library
-from gimpfu import *
+from gimpfu import main, register, pdb, RGBA_IMAGE, NORMAL_MODE, PF_OPTION, PF_TOGGLE, PF_SPINNER, PF_IMAGE, PF_DRAWABLE  # type: ignore
 
 
 # --------------------------------------
-# Update the list of available models
+# Global Variables
 # --------------------------------------
 
-def _find_additional_models():
-    '''Function to find additional upscale models in the "resrgan/models" folder'''
-    script_dir = os.path.dirname(os.path.realpath(__file__))
-    models_dir = os.path.join(script_dir, "resrgan/models")
-    # List all files in the models directory
-    all_files = os.listdir(models_dir)
-    # Filter out .bin and .param files
-    bin_files = {os.path.splitext(f)[0] for f in all_files if f.endswith('.bin')}
-    param_files = {os.path.splitext(f)[0] for f in all_files if f.endswith('.param')}
-    # Find paired models
-    paired_models = bin_files & param_files
-    # Hardcoded models to ignore
-    hardcoded_models = {
-        "realesr-animevideov3-x2",
-        "realesr-animevideov3-x3",
-        "realesr-animevideov3-x4",
-        "RealESRGAN_General_x4_v3",
-        "realesrgan-x4plus",
-        "realesrgan-x4plus-anime",
-        "UltraSharp-4x",
-        "AnimeSharp-4x"
-        }
-    # Return models that are not hardcoded
-    additional_models = [model for model in paired_models if model not in hardcoded_models]
-    return additional_models
+
+# Operation System
+PLATFORM = platform.system()
 
 
-# --------------------------------------
-# List of available models
-# --------------------------------------
+# Directory of the script
+SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
+
+
+# Directory of the models
+MODEL_DIR = os.path.join(SCRIPT_DIR, "resrgan/models")
+
+
+# Path to RESRGAN executable
+if PLATFORM == "Windows":
+    RESRGAN_PATH = os.path.join(SCRIPT_DIR, "resrgan/realesrgan-ncnn-vulkan.exe")
+else: # Linux
+    RESRGAN_PATH = os.path.join(SCRIPT_DIR, "resrgan/realesrgan-ncnn-vulkan")
+    # Make sure the executable has the correct permissions
+    subprocess.call(['chmod', 'u+x', RESRGAN_PATH])
 
 
 # Predefined model list
@@ -72,7 +67,39 @@ HARDCODED_MODELS = [
     "realesrgan-x4plus-anime",
     "UltraSharp-4x",
     "AnimeSharp-4x"
-    ]
+]
+
+
+# Default values:
+DEFAULT_MODEL_INDEX = 0
+DEFAULT_SELECTION_MODE = 0 # Layer
+DEFAULT_KEEP_COPY_LAYER = False
+DEFAULT_SCALE_FACTOR = 1.0
+
+
+# Scale factor range
+SCALE_START = 0.1
+SCALE_END = 8.0
+SCALE_INCREMENT = 0.05
+
+
+# --------------------------------------
+# Update the list of available models
+# --------------------------------------
+
+
+def _find_additional_models():
+    '''Function to find additional upscale models in the "resrgan/models" folder'''
+    # List all files in the models directory
+    all_files = os.listdir(MODEL_DIR)
+    # Filter out .bin and .param files
+    bin_files = {os.path.splitext(f)[0] for f in all_files if f.endswith('.bin')}
+    param_files = {os.path.splitext(f)[0] for f in all_files if f.endswith('.param')}
+    # Find paired models
+    paired_models = bin_files & param_files
+    # Filter out hardcoded models
+    models = [model for model in paired_models if model not in HARDCODED_MODELS]
+    return models
 
 
 # Combine predefined models with additional discovered models
@@ -107,16 +134,15 @@ def _export_image_to_temp(image, drawable):
     return temp_input_file
 
 
-def _run_resrgan(temp_input_file, temp_output_file, model):
+def _run_resrgan(temp_input_file, temp_output_file, model, shell):
     '''Upscale the image using the RESRGAN executable'''
-    script_dir = os.path.dirname(os.path.realpath(__file__))
-    resrgan_exe = os.path.join(script_dir, "resrgan/realesrgan-ncnn-vulkan.exe")
     upscale_process = subprocess.Popen([
-        resrgan_exe,
+        RESRGAN_PATH,
         "-i", temp_input_file,
         "-o", temp_output_file,
         "-n", model
-    ])
+    ], shell=shell)
+    pdb.gimp_progress_set_text("Upscaling...")
     upscale_process.wait()
 
 
@@ -167,7 +193,12 @@ def _cleanup_temp_files(image, selected_layer, temp_input_file, temp_output_file
     pdb.gimp_displays_flush()
 
 
-def upscale_with_ncnn(image, drawable, model_index, upscale_selection, keep_copy_layer, output_factor):
+# --------------------------------------
+# Primary Function
+# --------------------------------------
+
+
+def execute_upscale_process(image, drawable, model_index, upscale_selection, keep_copy_layer, output_factor):
     '''Main function that orchestrates the upscaling process using realesrgan-ncnn-vulkan.'''
     pdb.gimp_image_undo_group_start(image)
     try:
@@ -178,7 +209,8 @@ def upscale_with_ncnn(image, drawable, model_index, upscale_selection, keep_copy
         temp_output_file = tempfile.mktemp(suffix=".png")
         # Perform the upscaling
         model = MODELS[model_index]
-        _run_resrgan(temp_input_file, temp_output_file, model)
+        shell = True if PLATFORM == "Windows" else False
+        _run_resrgan(temp_input_file, temp_output_file, model, shell)
         # Load the upscaled image back into GIMP
         _load_upscaled_image(image, selected_layer, temp_output_file, output_factor, upscale_selection)
         # Clean up temporary files and layers
@@ -193,20 +225,27 @@ def upscale_with_ncnn(image, drawable, model_index, upscale_selection, keep_copy
 
 
 register(
-    "Nenotriple_upscale-with-NCNN",
-    "Upscale using NCNN",
-    "Upscale images using realesrgan-ncnn-vulkan.",
-    "github/Nenotriple", "github/Nenotriple/gimp_upscale", "2024",
-    "<Image>/Filters/Enhance/AI Upscale (NCNN)...",
-    "*",
-    [
-        (PF_OPTION, "model_index", "Model", 0, MODELS),
-        (PF_OPTION, "upscale_selection", "Upscale Input", 0, ["From Layer", "From Selection"]),
-        (PF_TOGGLE, "keep_copy_layer", "Keep Copy of Selection", False),
-        (PF_SPINNER, "output_factor", "Output Size Factor", 1.0, (1.00, 4.00, 0.01))
+    proc_name = "python-fu-upscale-with-ncnn",
+    blurb = "Upscale using AI-powered ESRGAN models\t\n---\t\ngithub.com/Nenotriple/gimp_upscale\t",
+    help = "This plugin provides AI-powered image upscaling using ESRGAN/NCNN models; github.com/Nenotriple/gimp_upscale",
+    author = "github.com/Nenotriple",
+    copyright = "github/Nenotriple; MIT-LICENSE; 2024;",
+    date = "2024",
+    label = "AI Upscale (NCNN)...",
+    menu = "<Image>/Filters/Enhance",
+    imagetypes = "*",
+    params = [
+        (PF_IMAGE, "image", "Input Image", None),
+        (PF_DRAWABLE, "drawable", "Input Drawable", None),
+        (PF_OPTION, "model_index", "AI Model", DEFAULT_MODEL_INDEX, MODELS),
+        (PF_OPTION, "upscale_selection", "Input Source", DEFAULT_SELECTION_MODE, ["Layer", "Selection"]),
+        (PF_TOGGLE, "keep_copy_layer", "Keep Selection Copy", DEFAULT_KEEP_COPY_LAYER),
+        (PF_SPINNER, "output_factor", "Size Factor", DEFAULT_SCALE_FACTOR, (SCALE_START, SCALE_END, SCALE_INCREMENT))
     ],
-    [],
-    upscale_with_ncnn)
+    results = [],
+    function = execute_upscale_process,
+)
 
 
 main()
+
