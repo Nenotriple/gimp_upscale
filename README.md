@@ -40,8 +40,8 @@
   - At this time, only `4x`/`x4` models are supported.
   - Please ensure the custom model includes a `model.param` and a `model.bin` file.
     - `.pth` model format is *not* supported.
-  - Models can be converted to NCNN format with tools like [Chainner](https://github.com/chaiNNer-org/chaiNNer)
-  - 
+  - Models can be converted to NCNN format with tools like:
+    - [Chainner,](https://github.com/chaiNNer-org/chaiNNer) or [custom scripts](https://github.com/xinntao/Real-ESRGAN-ncnn-vulkan/issues/59#issuecomment-2078688728)
 </details>
 
 
