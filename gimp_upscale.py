@@ -142,6 +142,7 @@ def _run_resrgan(temp_input_file, temp_output_file, model, shell):
         "-o", temp_output_file,
         "-n", model
     ], shell=shell)
+    pdb.gimp_progress_set_text("Upscaling...")
     upscale_process.wait()
 
 
