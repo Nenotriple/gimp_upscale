@@ -28,31 +28,35 @@
 ![gimp_upscale-app_preview](https://github.com/user-attachments/assets/ce277906-bc56-4bad-b218-aceaf4ba5c35)
 
 
-<br>
+# Features
+
+
+- Choose between 6 built-in models:
+  - `realesr-animevideov3-x4`, `RealESRGAN_General_x4_v3`,
+  - `realesrgan-x4plus`, `realesrgan-x4plus-anime`,
+  - `UltraSharp-4x`, `AnimeSharp-4x`
+- Upscale the entire layer, or just the selection.
+- Scale the output to any factor from 0.1x to 8x
+- Create a copy of the original selection when upscaling just the selection.
+- Cleanly upscale transparent alpha channels.
+- Use any other custom 4x ESRGAN model.
+
+
+<details>
+<summary>Adding your own custom ESRGAN models to the plug-in...</summary>
+  
+- Add your own models (NCNN) to the `resrgan/models` folder.
+  - Additional models can be found at https://openmodeldb.info/
+  - At this time, only `4x`/`x4` models are supported.
+  - Please ensure the custom model includes a `model.param` and a `model.bin` file.
+    - `.pth` model format is *not* supported.
+  - Models can be converted to NCNN format with tools like [Chainner](https://github.com/chaiNNer-org/chaiNNer)
+  - 
+</details>
 
 
 > [!NOTE]
-> - Included Models:
->   - `realesr-animevideov3-x4`
->   - `RealESRGAN_General_x4_v3`
->   - `realesrgan-x4plus`
->   - `realesrgan-x4plus-anime`
->   - `UltraSharp-4x`
->   - `AnimeSharp-4x`
-> - Currently, only `Windows` and `Linux` are supported. If you're interested in testing the `Mac` plug-in, please create an issue.
-
-
-<br>
-
-
-> [!TIP]
-> - Scale to any factor between, 1x to 4x
-> - Upscale the entire layer, or just the selection, including feathered selection.
-> - Add your own models (NCNN) to the `resrgan/models` folder.
->   - Additional models can be found at https://openmodeldb.info/
->   - Please ensure that the model includes a `model.param` and a `model.bin` file.
->   - Models can be converted to NCNN format with tools like [Chainner](https://github.com/chaiNNer-org/chaiNNer)
-
+> - Currently, only Windows and Linux are supported. If you're interested in testing the Mac plug-in, please create an issue.
 
 <br>
 
@@ -114,6 +118,7 @@ plug-ins
 
 <details>
 <summary>Additional information for Linux...</summary>
+  
 Setting up Python in GIMP on Linux may require additional steps.
 
 If you're having trouble, you can check the resources below:
@@ -121,7 +126,6 @@ If you're having trouble, you can check the resources below:
   - The flatpak version of GIMP should come with Python support.
 - Prebuilt GIMP Appimages; eg. [From here,](https://github.com/aferrero2707/gimp-appimage/releases/tag/continuous) or [from here,](https://github.com/TasMania17/Gimp-Appimages-Made-From-Debs/releases/tag/Gimp-v3.0.0rc1) etc.
 - Install `gimp-python` from your package manager.
-
 
 </details>
 
