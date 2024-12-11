@@ -9,23 +9,13 @@
 </p>
 
 
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/a8b6a88e-a438-462e-8b97-e1e8091df748" alt="cover" width=512>
-</p>
-
-
-<p align="center">
-  <em>(realesr-animevideov3, x1)</em>
-</p>
+![Compare_split_test](https://github.com/user-attachments/assets/63584ff7-6bc5-4307-a0f6-1a9aa6864303)
 
 
 ![GitHub repo size](https://img.shields.io/github/repo-size/Nenotriple/gimp_upscale)
 [![Hits](https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2FNenotriple%2Fgimp_upscale&count_bg=%2379C83D&title_bg=%23555555&icon=&icon_color=%23E7E7E7&title=hits&edge_flat=false)](https://hits.seeyoufarm.com)
 ![GitHub all release downloads](https://img.shields.io/github/downloads/Nenotriple/gimp_upscale/total)
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/Nenotriple/gimp_upscale)
-
-
-![gimp_upscale-app_preview](https://github.com/user-attachments/assets/ce277906-bc56-4bad-b218-aceaf4ba5c35)
 
 
 # Features
