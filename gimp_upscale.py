@@ -134,14 +134,14 @@ def _export_image_to_temp(image, drawable):
     return temp_input_file
 
 
-def _run_resrgan(temp_input_file, temp_output_file, model):
+def _run_resrgan(temp_input_file, temp_output_file, model, shell):
     '''Upscale the image using the RESRGAN executable'''
     upscale_process = subprocess.Popen([
         RESRGAN_PATH,
         "-i", temp_input_file,
         "-o", temp_output_file,
         "-n", model
-    ])
+    ], shell=shell)
     upscale_process.wait()
 
 
@@ -208,7 +208,8 @@ def execute_upscale_process(image, drawable, model_index, upscale_selection, kee
         temp_output_file = tempfile.mktemp(suffix=".png")
         # Perform the upscaling
         model = MODELS[model_index]
-        _run_resrgan(temp_input_file, temp_output_file, model)
+        shell = True if PLATFORM == "Windows" else False
+        _run_resrgan(temp_input_file, temp_output_file, model, shell)
         # Load the upscaled image back into GIMP
         _load_upscaled_image(image, selected_layer, temp_output_file, output_factor, upscale_selection)
         # Clean up temporary files and layers
