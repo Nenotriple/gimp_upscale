@@ -38,12 +38,25 @@ from gimpfu import main, register, pdb, RGBA_IMAGE, NORMAL_MODE, PF_OPTION, PF_T
 # --------------------------------------
 
 
+# Operation System
+PLATFORM = platform.system()
+
+
 # Directory of the script
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 
 
 # Directory of the models
 MODEL_DIR = os.path.join(SCRIPT_DIR, "resrgan/models")
+
+
+# Path to RESRGAN executable
+if PLATFORM == "Windows":
+    RESRGAN_PATH = os.path.join(SCRIPT_DIR, "resrgan/realesrgan-ncnn-vulkan.exe")
+else: # Linux
+    RESRGAN_PATH = os.path.join(SCRIPT_DIR, "resrgan/realesrgan-ncnn-vulkan")
+    # Make sure the executable has the correct permissions
+    subprocess.call(['chmod', 'u+x', RESRGAN_PATH])
 
 
 # Predefined model list
@@ -55,6 +68,19 @@ HARDCODED_MODELS = [
     "UltraSharp-4x",
     "AnimeSharp-4x"
 ]
+
+
+# Default values:
+DEFAULT_MODEL_INDEX = 0
+DEFAULT_SELECTION_MODE = 0 # Layer
+DEFAULT_KEEP_COPY_LAYER = False
+DEFAULT_SCALE_FACTOR = 1.0
+
+
+# Scale factor range
+SCALE_START = 1.0
+SCALE_END = 4.0
+SCALE_INCREMENT = 0.1
 
 
 # --------------------------------------
@@ -110,14 +136,8 @@ def _export_image_to_temp(image, drawable):
 
 def _run_resrgan(temp_input_file, temp_output_file, model):
     '''Upscale the image using the RESRGAN executable'''
-    if platform.system() == "Windows":
-        resrgan_exe = os.path.join(SCRIPT_DIR, "resrgan/realesrgan-ncnn-vulkan.exe")
-    else:  # Linux
-        resrgan_exe = os.path.join(SCRIPT_DIR, "resrgan/realesrgan-ncnn-vulkan")
-        # Make sure the executable has the correct permissions
-        subprocess.call(['chmod', 'u+x', resrgan_exe])
     upscale_process = subprocess.Popen([
-        resrgan_exe,
+        RESRGAN_PATH,
         "-i", temp_input_file,
         "-o", temp_output_file,
         "-n", model
@@ -215,10 +235,10 @@ register(
     params = [
         (PF_IMAGE, "image", "Input Image", None),
         (PF_DRAWABLE, "drawable", "Input Drawable", None),
-        (PF_OPTION, "model_index", "AI Model", 0, MODELS),
-        (PF_OPTION, "upscale_selection", "Input Source", 0, ["Layer", "Selection"]),
-        (PF_TOGGLE, "keep_copy_layer", "Keep Selection Copy", False),
-        (PF_SPINNER, "output_factor", "Size Factor", 1.0, (1.00, 4.00, 0.01))
+        (PF_OPTION, "model_index", "AI Model", DEFAULT_MODEL_INDEX, MODELS),
+        (PF_OPTION, "upscale_selection", "Input Source", DEFAULT_SELECTION_MODE, ["Layer", "Selection"]),
+        (PF_TOGGLE, "keep_copy_layer", "Keep Selection Copy", DEFAULT_KEEP_COPY_LAYER),
+        (PF_SPINNER, "output_factor", "Size Factor", DEFAULT_SCALE_FACTOR, (SCALE_START, SCALE_END, SCALE_INCREMENT))
     ],
     results = [],
     function = execute_upscale_process,
