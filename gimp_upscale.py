@@ -78,9 +78,9 @@ DEFAULT_SCALE_FACTOR = 1.0
 
 
 # Scale factor range
-SCALE_START = 1.0
-SCALE_END = 4.0
-SCALE_INCREMENT = 0.1
+SCALE_START = 0.1
+SCALE_END = 8.0
+SCALE_INCREMENT = 0.05
 
 
 # --------------------------------------
