@@ -68,28 +68,6 @@
 ![Static Badge](https://img.shields.io/badge/Intel-blue) ![Static Badge](https://img.shields.io/badge/AMD-red) ![Static Badge](https://img.shields.io/badge/Nvidia-green)
 
 
-### Find your GIMP plug-in directory:
-- `GIMP > Edit > Preferences > Folders > Plug-ins`
-
-
-<details>
-<summary>Default GIMP plug-in directory for Windows:</summary>
-
-- `C:\Users\%USERNAME%\AppData\Roaming\GIMP\2.10\plug-ins`
-- `C:\Program Files\GIMP 2\lib\gimp\2.0\plug-ins`
-
-</details>
-
-
-<details>
-<summary>Default GIMP plug-in directory for Linux:</summary>
-
-- `~/.config/GIMP/2.10/plug-ins`
-- `~/.gimp-2.10/plug-ins`
-
-</details>
-
-
 ### Method 1
 1) Download the [latest release](https://github.com/Nenotriple/gimp_upscale/releases)
 2) Extract the zip file to your GIMP plugins directory
@@ -102,8 +80,25 @@
 3) Add the repo path to your plug-in folders
 4) Restart GIMP
 
+### Extra info
+<details>
+<summary>Find your GIMP plug-in directory...</summary>
 
-### Example directory structure:
+- You can always find you plug-in folder from:
+  - `GIMP > Edit > Preferences > Folders > Plug-ins`
+- Default directory for Windows:
+  - `C:\Users\%USERNAME%\AppData\Roaming\GIMP\2.10\plug-ins`
+  - `C:\Program Files\GIMP 2\lib\gimp\2.0\plug-ins`
+- Default directory for Linux:
+  - `~/.config/GIMP/2.10/plug-ins`
+  - `~/.gimp-2.10/plug-ins`
+
+</details>
+
+
+<details>
+<summary>Example directory structure...</summary>
+  
 GIMP plug-ins must be in a folder structure like this:
 
 ```plaintext
@@ -114,8 +109,11 @@ plug-ins
     └── gimp_upscale.py
 ```
 
+</details>
 
-### Additional information for Linux:
+
+<details>
+<summary>Additional information for Linux...</summary>
 Setting up Python in GIMP on Linux may require additional steps.
 
 If you're having trouble, you can check the resources below:
@@ -123,6 +121,9 @@ If you're having trouble, you can check the resources below:
   - The flatpak version of GIMP should come with Python support.
 - Prebuilt GIMP Appimages; eg. [From here,](https://github.com/aferrero2707/gimp-appimage/releases/tag/continuous) or [from here,](https://github.com/TasMania17/Gimp-Appimages-Made-From-Debs/releases/tag/Gimp-v3.0.0rc1) etc.
 - Install `gimp-python` from your package manager.
+
+
+</details>
 
 
 <br>
