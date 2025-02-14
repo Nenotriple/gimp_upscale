@@ -46,7 +46,7 @@
 
 
 > [!NOTE]
-> - Currently, only Windows and Linux are supported. If you're interested in testing the Mac plug-in, please create an issue.
+> - Please see this [issue page](https://github.com/Nenotriple/gimp_upscale/issues/6) if you're interested in testing a MacOS version, let me know how it works!
 
 <br>
 
