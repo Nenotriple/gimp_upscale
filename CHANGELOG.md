@@ -1,3 +1,43 @@
+### v1.04
+[💾](https://github.com/Nenotriple/gimp_upscale/releases/tag/v1.04)
+
+
+<details>
+  <summary>Release Notes</summary>
+
+### New:
+- Add Tiled Upscale option.
+  - Upscale the image in tiles to avoid memory issues (slower).
+
+
+</details>
+
+
+---
+
+
+### v1.03
+[💾](https://github.com/Nenotriple/gimp_upscale/releases/tag/v1.03)
+
+
+<details>
+  <summary>Release Notes</summary>
+
+### New:
+- Add Linux support.
+- Add progress bar message during upscale process.
+
+### Other Changes:
+- Disable terminal popup on Windows.
+- Increase output scale limits and granularity.
+
+
+</details>
+
+
+---
+
+
 ### v1.02
 [💾](https://github.com/Nenotriple/gimp_upscale/releases/tag/v1.02)
 

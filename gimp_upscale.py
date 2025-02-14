@@ -4,7 +4,7 @@
 """
 ########################################
 #             gimp_upscale             #
-#   Version : v1.03                    #
+#   Version : v1.04                    #
 #   Author  : github.com/Nenotriple    #
 ########################################
 
@@ -20,8 +20,6 @@ More info here: https://github.com/Nenotriple/gimp_upscale
 # --------------------------------------
 # Imports
 # --------------------------------------
-
-
 # Standard Library
 import os
 import tempfile
@@ -36,27 +34,12 @@ from gimpfu import main, register, pdb, RGBA_IMAGE, NORMAL_MODE, PF_OPTION, PF_T
 # --------------------------------------
 # Global Variables
 # --------------------------------------
-
-
-# Operation System
-PLATFORM = platform.system()
-
-
 # Directory of the script
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 
 
 # Directory of the models
 MODEL_DIR = os.path.join(SCRIPT_DIR, "resrgan/models")
-
-
-# Path to RESRGAN executable
-if PLATFORM == "Windows":
-    RESRGAN_PATH = os.path.join(SCRIPT_DIR, "resrgan/realesrgan-ncnn-vulkan.exe")
-else: # Linux
-    RESRGAN_PATH = os.path.join(SCRIPT_DIR, "resrgan/realesrgan-ncnn-vulkan")
-    # Make sure the executable has the correct permissions
-    subprocess.call(['chmod', 'u+x', RESRGAN_PATH])
 
 
 # Predefined model list
@@ -84,10 +67,35 @@ SCALE_INCREMENT = 0.05
 
 
 # --------------------------------------
+# Get RESRGAN Executable Path
+# --------------------------------------
+def get_resrgan_executable_path(PLATFORM, SCRIPT_DIR):
+    EXECUTABLES = {
+        "Windows": "realesrgan-ncnn-vulkan.exe",
+        "Linux": "realesrgan-ncnn-vulkan_linux"
+    }
+    # Check if platform is supported
+    if PLATFORM not in EXECUTABLES:
+        raise Exception("Unsupported platform")
+    # Set platform dependant RESRGAN executable path
+    RESRGAN_PATH = os.path.join(SCRIPT_DIR, "resrgan", EXECUTABLES[PLATFORM])
+    # Make executable for Unix-like systems
+    if PLATFORM == "Linux":
+        subprocess.call(['chmod', 'u+x', RESRGAN_PATH])
+    return RESRGAN_PATH
+
+
+# Get the operation System
+PLATFORM = platform.system()
+
+
+# Get platform-specific RESRGAN executable path
+RESRGAN_PATH = get_resrgan_executable_path(PLATFORM, SCRIPT_DIR)
+
+
+# --------------------------------------
 # Update the list of available models
 # --------------------------------------
-
-
 def _find_additional_models():
     '''Function to find additional upscale models in the "resrgan/models" folder'''
     # List all files in the models directory
@@ -109,8 +117,6 @@ MODELS = HARDCODED_MODELS + _find_additional_models()
 # --------------------------------------
 # Functions
 # --------------------------------------
-
-
 def _get_layer_or_selection(image, drawable, upscale_selection):
     '''Retrieves the active layer or creates a new one from the selection.'''
     if upscale_selection and pdb.gimp_selection_is_empty(image):
@@ -196,37 +202,87 @@ def _cleanup_temp_files(image, selected_layer, temp_input_file, temp_output_file
 # --------------------------------------
 # Primary Function
 # --------------------------------------
-
-
-def execute_upscale_process(image, drawable, model_index, upscale_selection, keep_copy_layer, output_factor):
+def execute_upscale_process(image, drawable, model_index, upscale_selection, keep_copy_layer, tiled_upscale, tile_size, output_factor):
     '''Main function that orchestrates the upscaling process using realesrgan-ncnn-vulkan.'''
     pdb.gimp_image_undo_group_start(image)
     try:
-        # Get the target layer or selection
-        selected_layer = _get_layer_or_selection(image, drawable, upscale_selection)
-        # Export the target to a temporary file
-        temp_input_file = _export_image_to_temp(image, selected_layer)
-        temp_output_file = tempfile.mktemp(suffix=".png")
-        # Perform the upscaling
+        # Get the model and platform specific shell flag
         model = MODELS[model_index]
         shell = True if PLATFORM == "Windows" else False
-        _run_resrgan(temp_input_file, temp_output_file, model, shell)
-        # Load the upscaled image back into GIMP
-        _load_upscaled_image(image, selected_layer, temp_output_file, output_factor, upscale_selection)
-        # Clean up temporary files and layers
-        _cleanup_temp_files(image, selected_layer, temp_input_file, temp_output_file, upscale_selection, keep_copy_layer)
+
+        if not tiled_upscale:
+            # Regular (non-tiled) upscale
+            selected_layer = _get_layer_or_selection(image, drawable, upscale_selection)
+            temp_input_file = _export_image_to_temp(image, selected_layer)
+            temp_output_file = tempfile.mktemp(suffix=".png")
+            _run_resrgan(temp_input_file, temp_output_file, model, shell)
+            _load_upscaled_image(image, selected_layer, temp_output_file, output_factor, upscale_selection)
+            _cleanup_temp_files(image, selected_layer, temp_input_file, temp_output_file, upscale_selection, keep_copy_layer)
+        else:
+            # Tiled upscale process
+            _process_tiles(image, drawable, model, shell, output_factor, tile_size)
     finally:
         pdb.gimp_image_undo_group_end(image)
 
 
 # --------------------------------------
+# Tiled Image Processing
+# --------------------------------------
+def _process_tiles(image, drawable, model, shell, output_factor, tile_size):
+    '''Process image in tiles: crop, upscale and stitch them back.'''
+    # Get original dimensions
+    orig_width = pdb.gimp_image_width(image)
+    orig_height = pdb.gimp_image_height(image)
+    new_width = int(orig_width * output_factor)
+    new_height = int(orig_height * output_factor)
+    # Create a new blank image to stitch upscaled tiles
+    stitched_image = pdb.gimp_image_new(new_width, new_height, image.base_type)
+    stitched_layer = pdb.gimp_layer_new(stitched_image, new_width, new_height, RGBA_IMAGE, "Upscaled", 100, NORMAL_MODE)
+    pdb.gimp_image_insert_layer(stitched_image, stitched_layer, None, -1)
+    y = 0
+    # Process image in tiles
+    while y < orig_height:
+        tile_h = min(tile_size, orig_height - y)
+        x = 0
+        while x < orig_width:
+            tile_w = min(tile_size, orig_width - x)
+            # Duplicate image and crop to tile region
+            tile_image = pdb.gimp_image_duplicate(image)
+            pdb.gimp_image_crop(tile_image, tile_w, tile_h, x, y)
+            tile_drawable = pdb.gimp_image_get_active_layer(tile_image)
+            temp_input = _export_image_to_temp(tile_image, tile_drawable)
+            temp_output = tempfile.mktemp(suffix=".png")
+            _run_resrgan(temp_input, temp_output, model, shell)
+            # Load upscaled tile
+            up_tile_img = pdb.gimp_file_load(temp_output, temp_output)
+            up_tile_layer = pdb.gimp_image_get_active_layer(up_tile_img)
+            # Scale tile as per output factor
+            up_tile_w = int(tile_w * output_factor)
+            up_tile_h = int(tile_h * output_factor)
+            pdb.gimp_layer_scale(up_tile_layer, up_tile_w, up_tile_h, False)
+            # Paste upscaled tile into stitched image
+            pdb.gimp_edit_copy(up_tile_layer)
+            floating_sel = pdb.gimp_edit_paste(stitched_layer, False)
+            pdb.gimp_layer_set_offsets(floating_sel, int(x * output_factor), int(y * output_factor))
+            pdb.gimp_floating_sel_anchor(floating_sel)
+            # Clean up temporary files and images
+            os.remove(temp_input)
+            os.remove(temp_output)
+            pdb.gimp_image_delete(tile_image)
+            pdb.gimp_image_delete(up_tile_img)
+            x += tile_size
+        y += tile_size
+    # Display the stitched image
+    pdb.gimp_display_new(stitched_image)
+    pdb.gimp_displays_flush()
+
+
+# --------------------------------------
 # GIMP Plug-in Registration
 # --------------------------------------
-
-
 register(
     proc_name = "python-fu-upscale-with-ncnn",
-    blurb = "Upscale using AI-powered ESRGAN models\t\n---\t\ngithub.com/Nenotriple/gimp_upscale\t",
+    blurb = "v1.04 -- Upscale using Real-ESRGAN\t\n---\t\ngithub.com/Nenotriple/gimp_upscale\t",
     help = "This plugin provides AI-powered image upscaling using ESRGAN/NCNN models; github.com/Nenotriple/gimp_upscale",
     author = "github.com/Nenotriple",
     copyright = "github/Nenotriple; MIT-LICENSE; 2024;",
@@ -240,6 +296,8 @@ register(
         (PF_OPTION, "model_index", "AI Model", DEFAULT_MODEL_INDEX, MODELS),
         (PF_OPTION, "upscale_selection", "Input Source", DEFAULT_SELECTION_MODE, ["Layer", "Selection"]),
         (PF_TOGGLE, "keep_copy_layer", "Keep Selection Copy", DEFAULT_KEEP_COPY_LAYER),
+        (PF_TOGGLE, "tiled_upscale", "Tiled Upscale", False),
+        (PF_SPINNER, "tile_size", "Tile Size", 768, (128, 1024, 1)),
         (PF_SPINNER, "output_factor", "Size Factor", DEFAULT_SCALE_FACTOR, (SCALE_START, SCALE_END, SCALE_INCREMENT))
     ],
     results = [],
@@ -248,4 +306,3 @@ register(
 
 
 main()
-
