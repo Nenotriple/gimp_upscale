@@ -4,7 +4,7 @@
 """
 ########################################
 #             gimp_upscale             #
-#   Version : v1.03                    #
+#   Version : v1.04                    #
 #   Author  : github.com/Nenotriple    #
 ########################################
 
@@ -20,8 +20,6 @@ More info here: https://github.com/Nenotriple/gimp_upscale
 # --------------------------------------
 # Imports
 # --------------------------------------
-
-
 # Standard Library
 import os
 import tempfile
@@ -36,8 +34,6 @@ from gimpfu import main, register, pdb, RGBA_IMAGE, NORMAL_MODE, PF_OPTION, PF_T
 # --------------------------------------
 # Global Variables
 # --------------------------------------
-
-
 # Operation System
 PLATFORM = platform.system()
 
@@ -48,15 +44,6 @@ SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 
 # Directory of the models
 MODEL_DIR = os.path.join(SCRIPT_DIR, "resrgan/models")
-
-
-# Path to RESRGAN executable
-if PLATFORM == "Windows":
-    RESRGAN_PATH = os.path.join(SCRIPT_DIR, "resrgan/realesrgan-ncnn-vulkan.exe")
-else: # Linux
-    RESRGAN_PATH = os.path.join(SCRIPT_DIR, "resrgan/realesrgan-ncnn-vulkan")
-    # Make sure the executable has the correct permissions
-    subprocess.call(['chmod', 'u+x', RESRGAN_PATH])
 
 
 # Predefined model list
@@ -84,10 +71,32 @@ SCALE_INCREMENT = 0.05
 
 
 # --------------------------------------
+# Get RESRGAN Executable Path
+# --------------------------------------
+def get_resrgan_executable_path(PLATFORM, SCRIPT_DIR):
+    EXECUTABLES = {
+        "Windows": "realesrgan-ncnn-vulkan.exe",
+        "Darwin": "realesrgan-ncnn-vulkan_mac",
+        "Linux": "realesrgan-ncnn-vulkan_linux"
+    }
+    # Check if platform is supported
+    if PLATFORM not in EXECUTABLES:
+        raise Exception("Unsupported platform")
+    # Set platform dependant RESRGAN executable path
+    RESRGAN_PATH = os.path.join(SCRIPT_DIR, "resrgan", EXECUTABLES[PLATFORM])
+    # Make executable for Unix-like systems
+    if PLATFORM in ("Darwin", "Linux"):
+        subprocess.call(['chmod', 'u+x', RESRGAN_PATH])
+    return RESRGAN_PATH
+
+
+# Get platform-specific RESRGAN executable path
+RESRGAN_PATH = get_resrgan_executable_path(PLATFORM, SCRIPT_DIR)
+
+
+# --------------------------------------
 # Update the list of available models
 # --------------------------------------
-
-
 def _find_additional_models():
     '''Function to find additional upscale models in the "resrgan/models" folder'''
     # List all files in the models directory
@@ -109,8 +118,6 @@ MODELS = HARDCODED_MODELS + _find_additional_models()
 # --------------------------------------
 # Functions
 # --------------------------------------
-
-
 def _get_layer_or_selection(image, drawable, upscale_selection):
     '''Retrieves the active layer or creates a new one from the selection.'''
     if upscale_selection and pdb.gimp_selection_is_empty(image):
@@ -196,8 +203,6 @@ def _cleanup_temp_files(image, selected_layer, temp_input_file, temp_output_file
 # --------------------------------------
 # Primary Function
 # --------------------------------------
-
-
 def execute_upscale_process(image, drawable, model_index, upscale_selection, keep_copy_layer, output_factor):
     '''Main function that orchestrates the upscaling process using realesrgan-ncnn-vulkan.'''
     pdb.gimp_image_undo_group_start(image)
@@ -222,11 +227,9 @@ def execute_upscale_process(image, drawable, model_index, upscale_selection, kee
 # --------------------------------------
 # GIMP Plug-in Registration
 # --------------------------------------
-
-
 register(
     proc_name = "python-fu-upscale-with-ncnn",
-    blurb = "Upscale using AI-powered ESRGAN models\t\n---\t\ngithub.com/Nenotriple/gimp_upscale\t",
+    blurb = "v1.04 -- Upscale using Real-ESRGAN\t\n---\t\ngithub.com/Nenotriple/gimp_upscale\t",
     help = "This plugin provides AI-powered image upscaling using ESRGAN/NCNN models; github.com/Nenotriple/gimp_upscale",
     author = "github.com/Nenotriple",
     copyright = "github/Nenotriple; MIT-LICENSE; 2024;",
@@ -248,4 +251,3 @@ register(
 
 
 main()
-
