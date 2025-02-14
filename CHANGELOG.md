@@ -6,7 +6,8 @@
   <summary>Release Notes</summary>
 
 ### New:
-- Add MAcOS support.
+- Add Tiled Upscale option.
+  - Upscale the image in tiles to avoid memory issues (slower).
 
 
 </details>
