@@ -135,8 +135,21 @@ If you're having trouble, you can check the resources below:
 <br>
 
 
+# 🌟 Projects Using `gimp_upscale`
+
+Here are some awesome projects that have used `gimp_upscale`:
+
+| Creator | Description | Project Link |
+| - | - | - |
+| [@typokiow](https://next.nexusmods.com/profile/typokiow?gameId=7587) | **HQ Oblivion in-game map** — Replace the world map making it sharper and more legible whithout altering the original aesthetic.  | https://www.nexusmods.com/oblivionremastered/mods/1598?tab=description |
+
+> 🎨 **Have you used `gimp_upscale` in a project?**
+> [Open an issue](https://github.com/Nenotriple/gimp_upscale/issues) to be featured here!
+
+
 # 👥 Thanks!
 
 - [GIMP](https://www.gimp.org/) - *GPL-3.0*
 
 - [xinntao - Real-ESRGAN_portable](https://github.com/xinntao/Real-ESRGAN#portable-executable-files-ncnn) - *BSD-3-Clause license*
+
