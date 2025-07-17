@@ -51,8 +51,8 @@
 
 
 # 💾 Install
-![Static Badge](https://img.shields.io/badge/GIMP-2.10%2B-green)
-
+> [!NOTE]
+> This plugin only supports **Gimp 2.10**, a vulkan compatible gpu is required.
 
 ![Static Badge](https://img.shields.io/badge/Windows-blue)
 ![Static Badge](https://img.shields.io/badge/Linux-orange)
