@@ -18,6 +18,7 @@ import os
 import tempfile
 import subprocess
 from pathlib import Path
+import platform  # added
 
 import gi  # type: ignore
 gi.require_version('Gimp', '3.0')
@@ -87,17 +88,27 @@ MODELS_DIR = os.path.join(RESRGAN_DIR, "models")
 DEFAULT_OUTPUT_FACTOR = 1.0
 
 
+# Platform detection
+PLATFORM = platform.system()
+if PLATFORM == "Windows":
+    RESRGAN_PATH = os.path.join(RESRGAN_DIR, "realesrgan-ncnn-vulkan.exe")
+    SHELL = True
+else: # linux
+    RESRGAN_PATH = os.path.join(RESRGAN_DIR, "realesrgan-ncnn-vulkan")
+    SHELL = False
+    # Make sure the executable has the correct permissions
+    subprocess.call(['chmod', 'u+x', RESRGAN_PATH])
+
+
 #endregion
 #region Models
 
 
 def _resolve_resrgan_executable() -> str:
-    """Resolve the resrgan binary based on the current OS."""
-    exe_name = "realesrgan-ncnn-vulkan.exe" if os.name == "nt" else "realesrgan-ncnn-vulkan"
-    exe_path = os.path.join(RESRGAN_DIR, exe_name)
-    if not os.path.isfile(exe_path):
-        raise FileNotFoundError(f"Real-ESRGAN executable not found at: {exe_path}")
-    return exe_path
+    """Resolve the resrgan binary based on platform"""
+    if not os.path.isfile(RESRGAN_PATH):
+        raise FileNotFoundError(f"Real-ESRGAN executable not found at: {RESRGAN_PATH}")
+    return RESRGAN_PATH
 
 
 def _find_valid_models(models_dir: str) -> list[str]:
@@ -158,7 +169,7 @@ def _run_resrgan(temp_input: str, temp_output: str, model: str):
         proc = subprocess.Popen(
             [exe_path, "-i", temp_input, "-o", temp_output, "-n", model],
             cwd=RESRGAN_DIR,
-            shell=True,
+            shell=SHELL,  # match gimp2_upscale.py behavior
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
         )
