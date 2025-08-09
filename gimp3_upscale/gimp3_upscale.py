@@ -9,6 +9,7 @@ AI Upscale (GIMP 3)
 - Can apply to the entire image, only to the current selection, or to the selected layer only.
 """
 
+
 #region Imports
 
 
@@ -202,92 +203,65 @@ def _export_layer_only_to_temp(image: Gimp.Image, layer: Gimp.Layer) -> str:
 #region Compose
 
 
+# Helpers to reduce duplication across compose operations.
+def _image_layer_type(image: Gimp.Image) -> Gimp.ImageType:
+    return Gimp.ImageType.RGBA_IMAGE if image.get_base_type() == Gimp.ImageBaseType.RGB else Gimp.ImageType.GRAYA_IMAGE
+
+
+def _scaled_canvas_size(image: Gimp.Image, factor: float) -> tuple[int, int]:
+    orig_w, orig_h = image.get_width(), image.get_height()
+    final_w = max(1, int(round(orig_w * factor)))
+    final_h = max(1, int(round(orig_h * factor)))
+    return final_w, final_h
+
+
+def _new_layer(image: Gimp.Image, name: str, width: int, height: int) -> Gimp.Layer:
+    layer_type = _image_layer_type(image)
+    new_layer = Gimp.Layer.new(image, name, width, height, layer_type, 100.0, Gimp.LayerMode.NORMAL)
+    image.insert_layer(new_layer, None, -1)
+    return new_layer
+
+
+def _scale_and_copy(src: Gimp.Layer, dst: Gimp.Layer, width: int, height: int) -> None:
+    src.scale(width, height, False)
+    src_buf = src.get_buffer()
+    dst_buf = dst.get_buffer()
+    rect = Gegl.Rectangle.new(0, 0, width, height)
+    src_buf.copy(rect, Gegl.AbyssPolicy.NONE, dst_buf, rect)
+    dst.update(0, 0, width, height)
+
+
 def _handle_upscaled_layer(image: Gimp.Image, upscaled_layer: Gimp.Layer, output_factor: float) -> Gimp.Layer:
     """
-    Insert the upscaled layer into 'image', resizing canvas to output_factor * original size,
-    and scale the upscaled layer to fit that final canvas.
+    Insert the upscaled layer into image, resize canvas to factor * original, and fit content.
     """
-    orig_w, orig_h = image.get_width(), image.get_height()
-    final_w = max(1, int(round(orig_w * output_factor)))
-    final_h = max(1, int(round(orig_h * output_factor)))
-    # Resize target image first
+    final_w, final_h = _scaled_canvas_size(image, output_factor)
     image.resize(final_w, final_h, 0, 0)
-    # Decide target layer type based on image base type
-    if image.get_base_type() == Gimp.ImageBaseType.RGB:
-        layer_type = Gimp.ImageType.RGBA_IMAGE
-    else:
-        layer_type = Gimp.ImageType.GRAYA_IMAGE
-    # Create and insert the destination layer
-    new_layer = Gimp.Layer.new(image, "AI Upscaled Layer", final_w, final_h, layer_type, 100.0, Gimp.LayerMode.NORMAL)
-    image.insert_layer(new_layer, None, -1)
-    # Scale upscaled_layer to final canvas size, then copy its buffer into new_layer
-    upscaled_layer.scale(final_w, final_h, False)
-    src_buf = upscaled_layer.get_buffer()
-    dst_buf = new_layer.get_buffer()
-    rect = Gegl.Rectangle.new(0, 0, final_w, final_h)
-    src_buf.copy(rect, Gegl.AbyssPolicy.NONE, dst_buf, rect)
-    new_layer.update(0, 0, final_w, final_h)
+    new_layer = _new_layer(image, "AI Upscaled Layer", final_w, final_h)
+    _scale_and_copy(upscaled_layer, new_layer, final_w, final_h)
     return new_layer
 
 
 def _handle_upscaled_selection(image: Gimp.Image, upscaled_layer: Gimp.Layer) -> Gimp.Layer:
     """
-    Insert the upscaled layer into 'image' without resizing the canvas,
-    and reveal it only inside the current selection via a layer mask.
+    Insert upscaled content on same canvas and reveal only inside current selection.
     """
     width, height = image.get_width(), image.get_height()
-    if image.get_base_type() == Gimp.ImageBaseType.RGB:
-        layer_type = Gimp.ImageType.RGBA_IMAGE
-    else:
-        layer_type = Gimp.ImageType.GRAYA_IMAGE
-
-    new_layer = Gimp.Layer.new(image, "AI Upscaled (Selection)", width, height, layer_type, 100.0, Gimp.LayerMode.NORMAL)
-    image.insert_layer(new_layer, None, -1)
-
-    # Scale the upscaled source to the current canvas size and copy pixels over
-    upscaled_layer.scale(width, height, False)
-    src_buf = upscaled_layer.get_buffer()
-    dst_buf = new_layer.get_buffer()
-    rect = Gegl.Rectangle.new(0, 0, width, height)
-    src_buf.copy(rect, Gegl.AbyssPolicy.NONE, dst_buf, rect)
-
-    # Constrain visibility to current selection
+    new_layer = _new_layer(image, "AI Upscaled (Selection)", width, height)
+    _scale_and_copy(upscaled_layer, new_layer, width, height)
     mask = new_layer.create_mask(Gimp.AddMaskType.SELECTION)
     new_layer.add_mask(mask)
-
-    new_layer.update(0, 0, width, height)
     return new_layer
 
 
 def _handle_upscaled_layer_only(image: Gimp.Image, upscaled_layer: Gimp.Layer, output_factor: float) -> Gimp.Layer:
     """
-    Insert the upscaled layer into 'image', resizing canvas to output_factor * original size
-    (same as 'Entire image' mode), without applying any selection mask.
+    Insert upscaled layer and resize canvas like 'Entire image' without selection masking.
     """
-    orig_w, orig_h = image.get_width(), image.get_height()
-    final_w = max(1, int(round(orig_w * output_factor)))
-    final_h = max(1, int(round(orig_h * output_factor)))
-
-    # Resize target image first
+    final_w, final_h = _scaled_canvas_size(image, output_factor)
     image.resize(final_w, final_h, 0, 0)
-
-    # Decide target layer type based on image base type
-    if image.get_base_type() == Gimp.ImageBaseType.RGB:
-        layer_type = Gimp.ImageType.RGBA_IMAGE
-    else:
-        layer_type = Gimp.ImageType.GRAYA_IMAGE
-
-    # Create and insert the destination layer
-    new_layer = Gimp.Layer.new(image, "AI Upscaled (Layer only)", final_w, final_h, layer_type, 100.0, Gimp.LayerMode.NORMAL)
-    image.insert_layer(new_layer, None, -1)
-
-    # Scale upscaled_layer to final canvas size, then copy its buffer into new_layer
-    upscaled_layer.scale(final_w, final_h, False)
-    src_buf = upscaled_layer.get_buffer()
-    dst_buf = new_layer.get_buffer()
-    rect = Gegl.Rectangle.new(0, 0, final_w, final_h)
-    src_buf.copy(rect, Gegl.AbyssPolicy.NONE, dst_buf, rect)
-    new_layer.update(0, 0, final_w, final_h)
+    new_layer = _new_layer(image, "AI Upscaled (Layer only)", final_w, final_h)
+    _scale_and_copy(upscaled_layer, new_layer, final_w, final_h)
     return new_layer
 
 
@@ -320,6 +294,7 @@ def ai_upscale(procedure, run_mode, image, drawables, config, data):
 
     # Interactive UI
     if run_mode == Gimp.RunMode.INTERACTIVE:
+
 
         #region GUI
         # --- Dialog ---
@@ -382,6 +357,7 @@ def ai_upscale(procedure, run_mode, image, drawables, config, data):
             return procedure.new_return_values(Gimp.PDBStatusType.CANCEL, GLib.Error())
         dialog.destroy()
         #endregion
+
 
     # Non-interactive or interactive continues:
     output_factor = float(config.get_property('output_factor'))
