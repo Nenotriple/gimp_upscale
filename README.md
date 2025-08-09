@@ -1,5 +1,5 @@
 <h1 align="center">
-  <img src="https://github.com/user-attachments/assets/fd0b3a53-7240-4a01-8dff-5dcf4d0ca46b" alt="icon" width="50">
+  <img src="images/icon.png" alt="icon" width="70">
   gimp_upscale
 </h1>
 
@@ -7,11 +7,10 @@
   Upscale directly within GIMP (2.10 and 3.0) using realesrgan-ncnn-vulkan
 </p>
 
-![Compare_split_test](https://github.com/user-attachments/assets/63584ff7-6bc5-4307-a0f6-1a9aa6864303)
+![Compare_split_test](images/cover.png)
 
-![GitHub repo size](https://img.shields.io/github/repo-size/Nenotriple/gimp_upscale)
-![GitHub all release downloads](https://img.shields.io/github/downloads/Nenotriple/gimp_upscale/total)
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/Nenotriple/gimp_upscale)
+![GitHub repo size](https://img.shields.io/github/repo-size/Nenotriple/gimp_upscale) ![GitHub all release downloads](https://img.shields.io/github/downloads/Nenotriple/gimp_upscale/total) ![GitHub release (latest by date)](https://img.shields.io/github/v/release/Nenotriple/gimp_upscale)
+
 
 # Features
 
@@ -41,7 +40,20 @@
 
 <br>
 
-# Upscale Previews
+# Upscale Examples
+
+<details>
+<summary>Expand the section below to see example images...</summary>
+
+![Example 1](images/compare_1x-a.png)
+
+![Example 2](images/compare_1x-b.png)
+
+![Example 3](images/compare_1x-c.png)
+
+![Example 4](images/compare_4x.png)
+
+</details>
 
 <br>
 
