@@ -75,6 +75,7 @@ DEFAULT_MODEL_INDEX = 0
 DEFAULT_SELECTION_MODE = 0 # Layer
 DEFAULT_KEEP_COPY_LAYER = False
 DEFAULT_SCALE_FACTOR = 1.0
+DEFAULT_TILED_UPSCALE = False
 
 
 # Scale factor range
@@ -134,14 +135,28 @@ def _export_image_to_temp(image, drawable):
     return temp_input_file
 
 
-def _run_resrgan(temp_input_file, temp_output_file, model, shell):
+def _auto_tile_size(width, height, max_tile=512):
+    """Return largest tile size that divides both width and height and is <= max_tile."""
+    limit = min(width, height, max_tile)
+    for size in range(limit, 1, -1):
+        if width % size == 0 and height % size == 0:
+            if size == width and size == height:
+                return None  # no tiling needed
+            return size
+    return None
+
+
+def _run_resrgan(temp_input_file, temp_output_file, model, shell, tile_size=None):
     '''Upscale the image using the RESRGAN executable'''
-    upscale_process = subprocess.Popen([
+    cmd = [
         RESRGAN_PATH,
         "-i", temp_input_file,
         "-o", temp_output_file,
         "-n", model
-    ], shell=shell)
+    ]
+    if tile_size:
+        cmd += ["-t", str(tile_size)]
+    upscale_process = subprocess.Popen(cmd, shell=shell)
     pdb.gimp_progress_set_text("Upscaling...")
     upscale_process.wait()
 
@@ -198,7 +213,7 @@ def _cleanup_temp_files(image, selected_layer, temp_input_file, temp_output_file
 # --------------------------------------
 
 
-def execute_upscale_process(image, drawable, model_index, upscale_selection, keep_copy_layer, output_factor):
+def execute_upscale_process(image, drawable, model_index, upscale_selection, keep_copy_layer, tiled_upscale, output_factor):
     '''Main function that orchestrates the upscaling process using realesrgan-ncnn-vulkan.'''
     pdb.gimp_image_undo_group_start(image)
     try:
@@ -210,7 +225,12 @@ def execute_upscale_process(image, drawable, model_index, upscale_selection, kee
         # Perform the upscaling
         model = MODELS[model_index]
         shell = True if PLATFORM == "Windows" else False
-        _run_resrgan(temp_input_file, temp_output_file, model, shell)
+        tile_size = None
+        if tiled_upscale:
+            width = pdb.gimp_drawable_width(selected_layer)
+            height = pdb.gimp_drawable_height(selected_layer)
+            tile_size = _auto_tile_size(width, height)
+        _run_resrgan(temp_input_file, temp_output_file, model, shell, tile_size)
         # Load the upscaled image back into GIMP
         _load_upscaled_image(image, selected_layer, temp_output_file, output_factor, upscale_selection)
         # Clean up temporary files and layers
@@ -240,6 +260,7 @@ register(
         (PF_OPTION, "model_index", "AI Model", DEFAULT_MODEL_INDEX, MODELS),
         (PF_OPTION, "upscale_selection", "Input Source", DEFAULT_SELECTION_MODE, ["Layer", "Selection"]),
         (PF_TOGGLE, "keep_copy_layer", "Keep Selection Copy", DEFAULT_KEEP_COPY_LAYER),
+        (PF_TOGGLE, "tiled_upscale", "Tiled Upscale", DEFAULT_TILED_UPSCALE),
         (PF_SPINNER, "output_factor", "Size Factor", DEFAULT_SCALE_FACTOR, (SCALE_START, SCALE_END, SCALE_INCREMENT))
     ],
     results = [],

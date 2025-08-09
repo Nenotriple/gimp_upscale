@@ -26,6 +26,7 @@
 - Upscale the entire image/layer, or only the selection.
 - Scale the output to any factor from 0.1x to 8x.
 - Cleanly upscale transparent alpha channels.
+- Optional tiled upscaling splits the image into equal tiles before processing.
 - Use custom 4x ESRGAN models (NCNN: `.param` + `.bin`).
 
 <details>
@@ -100,7 +101,7 @@
 
 1. Open an image in GIMP.
 2. Go to `Filters > Enhance > AI Upscale...`.
-3. Adjust options as needed.
+3. Adjust options as needed, enabling **Tiled Upscale** to automatically split and merge tiles.
 4. Click Run/OK and wait for processing.
 
 ### Extra Info

@@ -159,15 +159,29 @@ def _load_png_as_image(path: str) -> Gimp.Image:
     return result.index(1)
 
 
-def _run_resrgan(temp_input: str, temp_output: str, model: str):
+def _auto_tile_size(width: int, height: int, max_tile: int = 512) -> int | None:
+    """Return largest tile size dividing both width and height and <= max_tile."""
+    limit = min(width, height, max_tile)
+    for size in range(limit, 1, -1):
+        if width % size == 0 and height % size == 0:
+            if size == width and size == height:
+                return None
+            return size
+    return None
+
+
+def _run_resrgan(temp_input: str, temp_output: str, model: str, tile_size: int | None = None):
     """
     Run Real-ESRGAN upscaling. We set cwd to RESRGAN_DIR so '-n <model>'
     can resolve model files in ./models automatically.
     """
     exe_path = _resolve_resrgan_executable()
     try:
+        cmd = [exe_path, "-i", temp_input, "-o", temp_output, "-n", model]
+        if tile_size:
+            cmd += ["-t", str(tile_size)]
         proc = subprocess.Popen(
-            [exe_path, "-i", temp_input, "-o", temp_output, "-n", model],
+            cmd,
             cwd=RESRGAN_DIR,
             shell=SHELL,  # match gimp2_upscale.py behavior
             stdout=subprocess.PIPE,
@@ -311,6 +325,7 @@ def ai_upscale(procedure, run_mode, image, drawables, config, data):
     # Use local defaults instead of config-backed properties
     current_model = model_options[0]
     scope_mode = "entire"  # 'entire' | 'selection' | 'layer'
+    tiled_mode = False
     # Interactive UI
     if run_mode == Gimp.RunMode.INTERACTIVE:
         #region GUI
@@ -360,6 +375,16 @@ def ai_upscale(procedure, run_mode, image, drawables, config, data):
         scope_box.pack_start(rb_selection, False, False, 0)
         scope_box.pack_start(rb_layer, False, False, 0)
         dialog.get_content_area().pack_start(scope_frame, False, False, 6)
+        # --- Tiled toggle ---
+        chk_tiled = Gtk.CheckButton.new_with_label(_txt("Tiled upscale"))
+        chk_tiled.set_active(tiled_mode)
+
+        def _on_tile_toggle(btn):
+            nonlocal tiled_mode
+            tiled_mode = btn.get_active()
+
+        chk_tiled.connect('toggled', _on_tile_toggle)
+        dialog.get_content_area().pack_start(chk_tiled, False, False, 6)
         dialog.show_all()
         # --- Run & close ---
         if not dialog.run():
@@ -386,14 +411,17 @@ def ai_upscale(procedure, run_mode, image, drawables, config, data):
             _progress(f"Exporting layer {idx+1}/{total}…", base + 0.02 * span)
             if scope_mode == "layer":
                 temp_input = _export_layer_only_to_temp(image, drawable)
+                width, height = drawable.get_width(), drawable.get_height()
             else:
                 temp_input = _export_drawable_to_temp(drawable)  # exports the image composite
+                width, height = image.get_width(), image.get_height()
 
             temp_output = tempfile.mktemp(suffix=".png")
             upscaled_image = None
             try:
                 _progress(f"Upscaling with {current_model}…", base + 0.15 * span)
-                _run_resrgan(temp_input, temp_output, current_model)
+                tile_size = _auto_tile_size(width, height) if tiled_mode else None
+                _run_resrgan(temp_input, temp_output, current_model, tile_size)
                 _progress("Loading upscaled image…", base + 0.60 * span)
                 upscaled_image = _load_png_as_image(temp_output)
                 upscaled_layers = upscaled_image.get_layers()
