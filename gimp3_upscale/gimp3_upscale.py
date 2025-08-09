@@ -68,22 +68,12 @@ DEFAULT_OUTPUT_FACTOR = 1.0
 
 
 def _resolve_resrgan_executable() -> str:
-    """
-    Find the realesrgan binary in RESRGAN_DIR, allowing for Windows (.exe) and Unix.
-    Returns absolute path or raises with a descriptive error.
-    """
-    candidates = [
-        os.path.join(RESRGAN_DIR, "realesrgan-ncnn-vulkan.exe"),
-        os.path.join(RESRGAN_DIR, "realesrgan-ncnn-vulkan"),
-    ]
-    for c in candidates:
-        if os.path.isfile(c):
-            return c
-    raise FileNotFoundError(
-        "Could not find Real-ESRGAN executable in:\n"
-        f"  {RESRGAN_DIR}\n"
-        "Expected one of: realesrgan-ncnn-vulkan(.exe)"
-    )
+    """Resolve the resrgan binary based on the current OS."""
+    exe_name = "realesrgan-ncnn-vulkan.exe" if os.name == "nt" else "realesrgan-ncnn-vulkan"
+    exe_path = os.path.join(RESRGAN_DIR, exe_name)
+    if not os.path.isfile(exe_path):
+        raise FileNotFoundError(f"Real-ESRGAN executable not found at: {exe_path}")
+    return exe_path
 
 
 def _find_valid_models(models_dir: str) -> list[str]:
