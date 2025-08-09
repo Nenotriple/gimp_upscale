@@ -17,6 +17,9 @@ Folder layout (relative to this script):
         <model_name>.param
 """
 
+#region Imports
+
+
 import sys
 import os
 import tempfile
@@ -32,12 +35,34 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gimp, GimpUi, Gegl, GObject, GLib, Gio, Gtk  # type: ignore
 
 
+#endregion
+#region Utils
+
+
 def _txt(message: str) -> str:
     """Translate the given message using GLib's dgettext for localization."""
     return GLib.dgettext(None, message)
 
 
-# --- Paths & constants --------------------------------------------------------
+def _return_error(procedure, status: Gimp.PDBStatusType, message: str):
+    """Create a GLib.Error with message and return standardized return values."""
+    err = GLib.Error()
+    err.message = message
+    return procedure.new_return_values(status, err)
+
+
+def _safe_remove(path: str):
+    """Silently remove a file if it exists."""
+    try:
+        if path and os.path.isfile(path):
+            os.remove(path)
+    except Exception:
+        pass
+
+
+#endregion
+#region Paths & consts
+
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 RESRGAN_DIR = os.path.join(SCRIPT_DIR, "resrgan")
@@ -45,6 +70,10 @@ MODELS_DIR = os.path.join(RESRGAN_DIR, "models")
 
 # This is just a UI/display default. Actual default is the first discovered model.
 DEFAULT_OUTPUT_FACTOR = 1.0
+
+
+#endregion
+#region Models
 
 
 def _resolve_resrgan_executable() -> str:
@@ -79,26 +108,24 @@ def _find_valid_models(models_dir: str) -> list[str]:
     return sorted(stems_bin.intersection(stems_param))
 
 
-# --- IO helpers ---------------------------------------------------------------
+#endregion
+#region IO helpers
+
 
 def _export_drawable_to_temp(drawable: Gimp.Drawable) -> str:
     """Export drawable to a temporary PNG file using GIMP 3 PDB export."""
     temp_file = tempfile.mktemp(suffix=".png")
     image = drawable.get_image()
     file = Gio.File.new_for_path(temp_file)
-
     pdb = Gimp.get_pdb()
     procedure = pdb.lookup_procedure('file-png-export')
     if procedure is None:
         raise RuntimeError("Missing 'file-png-export' procedure.")
-
     config = procedure.create_config()
     config.set_property('run-mode', Gimp.RunMode.NONINTERACTIVE)
     config.set_property('image', image)
     config.set_property('file', file)
-
-    result = procedure.run(config)
-    # We assume success if it didn't raise; GIMP 3 returns a Gimp.ValueArray.
+    procedure.run(config)
     return temp_file
 
 
@@ -108,7 +135,6 @@ def _load_png_as_image(path: str) -> Gimp.Image:
     load_proc = pdb.lookup_procedure('file-png-load')
     if load_proc is None:
         raise RuntimeError("Missing 'file-png-load' procedure.")
-
     cfg = load_proc.create_config()
     cfg.set_property('run-mode', Gimp.RunMode.NONINTERACTIVE)
     cfg.set_property('file', Gio.File.new_for_path(path))
@@ -143,6 +169,10 @@ def _run_resrgan(temp_input: str, temp_output: str, model: str):
         raise RuntimeError(f"Error running Real-ESRGAN: {e}") from e
 
 
+#endregion
+#region Compose
+
+
 def _handle_upscaled_layer(image: Gimp.Image, upscaled_layer: Gimp.Layer, output_factor: float) -> Gimp.Layer:
     """
     Insert the upscaled layer into 'image', resizing canvas to output_factor * original size,
@@ -151,23 +181,18 @@ def _handle_upscaled_layer(image: Gimp.Image, upscaled_layer: Gimp.Layer, output
     orig_w, orig_h = image.get_width(), image.get_height()
     final_w = max(1, int(round(orig_w * output_factor)))
     final_h = max(1, int(round(orig_h * output_factor)))
-
     # Resize target image first
     image.resize(final_w, final_h, 0, 0)
-
     # Decide target layer type based on image base type
     if image.get_base_type() == Gimp.ImageBaseType.RGB:
         layer_type = Gimp.ImageType.RGBA_IMAGE
     else:
         layer_type = Gimp.ImageType.GRAYA_IMAGE
-
     # Create and insert the destination layer
     new_layer = Gimp.Layer.new(image, "AI Upscaled Layer", final_w, final_h, layer_type, 100.0, Gimp.LayerMode.NORMAL)
     image.insert_layer(new_layer, None, -1)
-
     # Scale upscaled_layer to final canvas size, then copy its buffer into new_layer
     upscaled_layer.scale(final_w, final_h, False)
-
     src_buf = upscaled_layer.get_buffer()
     dst_buf = new_layer.get_buffer()
     rect = Gegl.Rectangle.new(0, 0, final_w, final_h)
@@ -176,7 +201,9 @@ def _handle_upscaled_layer(image: Gimp.Image, upscaled_layer: Gimp.Layer, output
     return new_layer
 
 
-# --- Procedure run ------------------------------------------------------------
+#endregion
+#region Procedure run
+
 
 def ai_upscale(procedure, run_mode, image, drawables, config, data):
     """
@@ -195,27 +222,28 @@ def ai_upscale(procedure, run_mode, image, drawables, config, data):
             f"Expected in:\n{MODELS_DIR}"
         )
         Gimp.message(msg)
-        err = GLib.Error()
-        err.message = msg
-        return procedure.new_return_values(Gimp.PDBStatusType.EXECUTION_ERROR, err)
+        return _return_error(procedure, Gimp.PDBStatusType.EXECUTION_ERROR, msg)
 
     # Ensure config has a valid model value
     current_model = config.get_property('model')
     if not current_model or current_model not in model_options:
         current_model = model_options[0]
         config.set_property('model', current_model)
-
     # Interactive UI: build radio button group inside ProcedureDialog
     if run_mode == Gimp.RunMode.INTERACTIVE:
+
+
+        #region GUI
+
+
+        # --- Dialog ---
         GimpUi.init('python-fu-ai-upscale')
         dialog = GimpUi.ProcedureDialog(procedure=procedure, config=config)
-        dialog.fill(None)  # build stock widgets for other args
-
-        # --- Custom radio group for models ---
+        dialog.fill(None)
+        # --- Model radios ---
         frame = Gtk.Frame.new(_txt("Model"))
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
         frame.add(vbox)
-
         radio_group = None
         for stem in model_options:
             btn = Gtk.RadioButton.new_with_label_from_widget(radio_group, stem)
@@ -230,25 +258,23 @@ def ai_upscale(procedure, run_mode, image, drawables, config, data):
 
             btn.connect('toggled', _on_toggle)
             vbox.pack_start(btn, False, False, 0)
-
         dialog.get_content_area().pack_start(frame, False, False, 6)
         dialog.show_all()
-
+        # --- Run & readback ---
         if not dialog.run():
             dialog.destroy()
             return procedure.new_return_values(Gimp.PDBStatusType.CANCEL, GLib.Error())
         dialog.destroy()
-
-        # Pull the user selection back out
         current_model = config.get_property('model')
+
+
+        #endregion
+
 
     # Non-interactive or interactive continues:
     output_factor = float(config.get_property('output_factor'))
-
     if not drawables:
-        err = GLib.Error()
-        err.message = "No drawable selected."
-        return procedure.new_return_values(Gimp.PDBStatusType.EXECUTION_ERROR, err)
+        return _return_error(procedure, Gimp.PDBStatusType.EXECUTION_ERROR, "No drawable selected.")
 
     # Do the work
     Gimp.context_push()
@@ -258,56 +284,42 @@ def ai_upscale(procedure, run_mode, image, drawables, config, data):
             Gimp.progress_set_text("Exporting layer…")
             temp_input = _export_drawable_to_temp(drawable)
             temp_output = tempfile.mktemp(suffix=".png")
-
             try:
                 Gimp.progress_set_text(f"Upscaling with {current_model}…")
                 _run_resrgan(temp_input, temp_output, current_model)
-
                 Gimp.progress_set_text("Loading upscaled image…")
                 upscaled_image = _load_png_as_image(temp_output)
                 upscaled_layers = upscaled_image.get_layers()
                 if not upscaled_layers:
                     raise RuntimeError("Upscaled image has no layers.")
                 upscaled_layer = upscaled_layers[0]
-
                 Gimp.progress_set_text("Compositing result…")
                 _handle_upscaled_layer(image, upscaled_layer, output_factor)
-
             finally:
-                # Clean temp files and the temp image
-                try:
-                    if os.path.isfile(temp_input):
-                        os.remove(temp_input)
-                except Exception:
-                    pass
-                try:
-                    if os.path.isfile(temp_output):
-                        os.remove(temp_output)
-                except Exception:
-                    pass
+                _safe_remove(temp_input)
+                _safe_remove(temp_output)
                 try:
                     upscaled_image.delete()
                 except Exception:
                     pass
-
         Gimp.displays_flush()
         Gimp.progress_set_text("AI Upscaling complete!")
-
     except Exception as e:
-        err = GLib.Error()
-        err.message = f"Upscaling failed: {e}"
-        return procedure.new_return_values(Gimp.PDBStatusType.EXECUTION_ERROR, err)
+        return _return_error(procedure, Gimp.PDBStatusType.EXECUTION_ERROR, f"Upscaling failed: {e}")
     finally:
         image.undo_group_end()
         Gimp.context_pop()
-
     return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
 
 
-# --- Plug-in registration -----------------------------------------------------
+#endregion
+#region Registration
+
+
+#region AIUpscale
+
 
 class AIUpscale(Gimp.PlugIn):
-
     # GimpPlugIn virtual methods
     def do_set_i18n(self, procname):
         return True, 'gimp30-python', None
@@ -316,7 +328,6 @@ class AIUpscale(Gimp.PlugIn):
         return ['python-fu-ai-upscale']
 
     def do_create_procedure(self, name):
-        Gegl.init(None)
         proc = Gimp.ImageProcedure.new(self, name, Gimp.PDBProcType.PLUGIN, ai_upscale, None)
         proc.set_image_types("RGB*, GRAY*")
         proc.set_sensitivity_mask(Gimp.ProcedureSensitivityMask.DRAWABLE | Gimp.ProcedureSensitivityMask.DRAWABLES)
@@ -328,7 +339,6 @@ class AIUpscale(Gimp.PlugIn):
         proc.set_menu_label(_txt("AI _Upscale…"))
         proc.set_attribution("github.com/Nenotriple", "github.com/Nenotriple", "2025")
         proc.add_menu_path("<Image>/Filters/Enhance")
-
         # String arg to hold the chosen model stem (we override the UI with radio buttons)
         proc.add_string_argument(
             "model",
@@ -337,7 +347,6 @@ class AIUpscale(Gimp.PlugIn):
             "",  # empty default; we pick first discovered at runtime
             GObject.ParamFlags.READWRITE
         )
-
         # Output factor: final composite size relative to original (0.05–8.0 typical)
         proc.add_double_argument(
             "output_factor",
@@ -346,8 +355,11 @@ class AIUpscale(Gimp.PlugIn):
             0.05, 8.0, DEFAULT_OUTPUT_FACTOR,
             GObject.ParamFlags.READWRITE
         )
-
         return proc
 
 
+#endregion
 Gimp.main(AIUpscale.__gtype__, sys.argv)
+
+
+#endregion
