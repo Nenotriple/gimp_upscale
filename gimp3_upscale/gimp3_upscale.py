@@ -6,6 +6,7 @@ AI Upscale (GIMP 3)
 - Auto-discovers valid Real-ESRGAN models (paired .bin/.param) in resrgan/models.
 - Presents models as radio buttons in the ProcedureDialog (single selection).
 - Runs realesrgan-ncnn-vulkan with the chosen model and inserts the result.
+- Can apply to the entire image or only to the current selection.
 
 Folder layout (relative to this script):
   SCRIPT_DIR/
@@ -201,6 +202,35 @@ def _handle_upscaled_layer(image: Gimp.Image, upscaled_layer: Gimp.Layer, output
     return new_layer
 
 
+def _handle_upscaled_selection(image: Gimp.Image, upscaled_layer: Gimp.Layer) -> Gimp.Layer:
+    """
+    Insert the upscaled layer into 'image' without resizing the canvas,
+    and reveal it only inside the current selection via a layer mask.
+    """
+    width, height = image.get_width(), image.get_height()
+    if image.get_base_type() == Gimp.ImageBaseType.RGB:
+        layer_type = Gimp.ImageType.RGBA_IMAGE
+    else:
+        layer_type = Gimp.ImageType.GRAYA_IMAGE
+
+    new_layer = Gimp.Layer.new(image, "AI Upscaled (Selection)", width, height, layer_type, 100.0, Gimp.LayerMode.NORMAL)
+    image.insert_layer(new_layer, None, -1)
+
+    # Scale the upscaled source to the current canvas size and copy pixels over
+    upscaled_layer.scale(width, height, False)
+    src_buf = upscaled_layer.get_buffer()
+    dst_buf = new_layer.get_buffer()
+    rect = Gegl.Rectangle.new(0, 0, width, height)
+    src_buf.copy(rect, Gegl.AbyssPolicy.NONE, dst_buf, rect)
+
+    # Constrain visibility to current selection
+    mask = new_layer.create_mask(Gimp.AddMaskType.SELECTION)
+    new_layer.add_mask(mask)
+
+    new_layer.update(0, 0, width, height)
+    return new_layer
+
+
 #endregion
 #region Procedure run
 
@@ -211,7 +241,7 @@ def ai_upscale(procedure, run_mode, image, drawables, config, data):
       - Discover models
       - Present radio buttons (interactive)
       - Run Real-ESRGAN with selected model
-      - Insert result
+      - Insert result (entire image or only selection)
     """
     # Discover model options up front
     model_options = _find_valid_models(MODELS_DIR)
@@ -229,17 +259,23 @@ def ai_upscale(procedure, run_mode, image, drawables, config, data):
     if not current_model or current_model not in model_options:
         current_model = model_options[0]
         config.set_property('model', current_model)
-    # Interactive UI: build radio button group inside ProcedureDialog
+
+    # Ensure we have a default for selection_only
+    try:
+        selection_only = bool(config.get_property('selection_only'))
+    except Exception:
+        selection_only = False
+        config.set_property('selection_only', selection_only)
+
+    # Interactive UI
     if run_mode == Gimp.RunMode.INTERACTIVE:
 
-
         #region GUI
-
-
         # --- Dialog ---
         GimpUi.init('python-fu-ai-upscale')
         dialog = GimpUi.ProcedureDialog(procedure=procedure, config=config)
         dialog.fill(None)
+
         # --- Model radios ---
         frame = Gtk.Frame.new(_txt("Model"))
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
@@ -259,6 +295,29 @@ def ai_upscale(procedure, run_mode, image, drawables, config, data):
             btn.connect('toggled', _on_toggle)
             vbox.pack_start(btn, False, False, 0)
         dialog.get_content_area().pack_start(frame, False, False, 6)
+
+        # --- Scope radios ---
+        scope_frame = Gtk.Frame.new(_txt("Scope"))
+        scope_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        scope_frame.add(scope_box)
+
+        rb_entire = Gtk.RadioButton.new_with_label_from_widget(None, _txt("Entire image"))
+        rb_selection = Gtk.RadioButton.new_with_label_from_widget(rb_entire, _txt("Selection only"))
+
+        rb_entire.set_active(not selection_only)
+        rb_selection.set_active(selection_only)
+
+        def _on_scope_toggle(btn, val):
+            if btn.get_active():
+                config.set_property('selection_only', val)
+
+        rb_entire.connect('toggled', _on_scope_toggle, False)
+        rb_selection.connect('toggled', _on_scope_toggle, True)
+
+        scope_box.pack_start(rb_entire, False, False, 0)
+        scope_box.pack_start(rb_selection, False, False, 0)
+        dialog.get_content_area().pack_start(scope_frame, False, False, 6)
+
         dialog.show_all()
         # --- Run & readback ---
         if not dialog.run():
@@ -266,10 +325,8 @@ def ai_upscale(procedure, run_mode, image, drawables, config, data):
             return procedure.new_return_values(Gimp.PDBStatusType.CANCEL, GLib.Error())
         dialog.destroy()
         current_model = config.get_property('model')
-
-
+        selection_only = bool(config.get_property('selection_only'))
         #endregion
-
 
     # Non-interactive or interactive continues:
     output_factor = float(config.get_property('output_factor'))
@@ -284,6 +341,7 @@ def ai_upscale(procedure, run_mode, image, drawables, config, data):
             Gimp.progress_set_text("Exporting layer…")
             temp_input = _export_drawable_to_temp(drawable)
             temp_output = tempfile.mktemp(suffix=".png")
+            upscaled_image = None
             try:
                 Gimp.progress_set_text(f"Upscaling with {current_model}…")
                 _run_resrgan(temp_input, temp_output, current_model)
@@ -293,13 +351,18 @@ def ai_upscale(procedure, run_mode, image, drawables, config, data):
                 if not upscaled_layers:
                     raise RuntimeError("Upscaled image has no layers.")
                 upscaled_layer = upscaled_layers[0]
-                Gimp.progress_set_text("Compositing result…")
-                _handle_upscaled_layer(image, upscaled_layer, output_factor)
+                if selection_only:
+                    Gimp.progress_set_text("Compositing into selection…")
+                    _handle_upscaled_selection(image, upscaled_layer)
+                else:
+                    Gimp.progress_set_text("Compositing result…")
+                    _handle_upscaled_layer(image, upscaled_layer, output_factor)
             finally:
                 _safe_remove(temp_input)
                 _safe_remove(temp_output)
                 try:
-                    upscaled_image.delete()
+                    if upscaled_image is not None:
+                        upscaled_image.delete()
                 except Exception:
                     pass
         Gimp.displays_flush()
@@ -351,8 +414,16 @@ class AIUpscale(Gimp.PlugIn):
         proc.add_double_argument(
             "output_factor",
             _txt("Output _Factor"),
-            _txt("Final output size relative to original size"),
+            _txt("Final output size relative to original size (entire image mode)"),
             0.05, 8.0, DEFAULT_OUTPUT_FACTOR,
+            GObject.ParamFlags.READWRITE
+        )
+        # Scope toggle
+        proc.add_boolean_argument(
+            "selection_only",
+            _txt("_Selection Only"),
+            _txt("Apply only to the current selection (image size unchanged)"),
+            False,
             GObject.ParamFlags.READWRITE
         )
         return proc
