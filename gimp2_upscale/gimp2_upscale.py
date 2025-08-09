@@ -231,7 +231,7 @@ register(
     author = "github.com/Nenotriple",
     copyright = "github/Nenotriple; MIT-LICENSE; 2024;",
     date = "2024",
-    label = "AI Upscale (NCNN)...",
+    label = "AI Upscale...",
     menu = "<Image>/Filters/Enhance",
     imagetypes = "*",
     params = [
