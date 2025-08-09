@@ -316,7 +316,7 @@ def ai_upscale(procedure, run_mode, image, drawables, config, data):
         #region GUI
         # --- Dialog ---
         GimpUi.init('python-fu-ai-upscale')
-        _progress("AI Upscale: choose model and scope…")
+        _progress("AI Upscale: choose model and scope...")
         dialog = GimpUi.ProcedureDialog(procedure=procedure, config=config)
         dialog.fill(None)  # Only 'output_factor' remains as a real argument
         # --- Model radios ---
@@ -377,13 +377,13 @@ def ai_upscale(procedure, run_mode, image, drawables, config, data):
     Gimp.context_push()
     image.undo_group_start()
     # Initialize status bar progress
-    _progress_start("AI Upscale: starting…")
+    _progress_start("AI Upscale: starting...")
     try:
         total = len(drawables)
         for idx, drawable in enumerate(drawables):
             base = idx / total
             span = 1.0 / total
-            _progress(f"Exporting layer {idx+1}/{total}…", base + 0.02 * span)
+            _progress(f"Exporting layer {idx+1}/{total}...", base + 0.02 * span)
             if scope_mode == "layer":
                 temp_input = _export_layer_only_to_temp(image, drawable)
             else:
@@ -392,24 +392,24 @@ def ai_upscale(procedure, run_mode, image, drawables, config, data):
             temp_output = tempfile.mktemp(suffix=".png")
             upscaled_image = None
             try:
-                _progress(f"Upscaling with {current_model}…", base + 0.15 * span)
+                _progress(f"Upscaling with {current_model}...", base + 0.15 * span)
                 _run_resrgan(temp_input, temp_output, current_model)
-                _progress("Loading upscaled image…", base + 0.60 * span)
+                _progress("Loading upscaled image...", base + 0.60 * span)
                 upscaled_image = _load_png_as_image(temp_output)
                 upscaled_layers = upscaled_image.get_layers()
                 if not upscaled_layers:
                     raise RuntimeError("Upscaled image has no layers.")
                 upscaled_layer = upscaled_layers[0]
                 if scope_mode == "selection":
-                    _progress("Compositing into selection…", base + 0.75 * span)
+                    _progress("Compositing into selection...", base + 0.75 * span)
                     _handle_upscaled_selection(image, upscaled_layer)
                 elif scope_mode == "layer":
-                    _progress("Compositing layer…", base + 0.80 * span)
+                    _progress("Compositing layer...", base + 0.80 * span)
                     _handle_upscaled_layer_only(image, upscaled_layer, output_factor)
                 else:
-                    _progress("Compositing result…", base + 0.80 * span)
+                    _progress("Compositing result...", base + 0.80 * span)
                     _handle_upscaled_layer(image, upscaled_layer, output_factor)
-                _progress(f"Finalizing {idx+1}/{total}…", base + 0.95 * span)
+                _progress(f"Finalizing {idx+1}/{total}...", base + 0.95 * span)
             finally:
                 _del_file(temp_input)
                 _del_file(temp_output)
@@ -453,7 +453,7 @@ class AIUpscale(Gimp.PlugIn):
             _txt("Upscale images using Real-ESRGAN AI models discovered in resrgan/models"),
             name
         )
-        proc.set_menu_label(_txt("AI _Upscale…"))
+        proc.set_menu_label(_txt("AI _Upscale..."))
         proc.set_attribution("github.com/Nenotriple", "github.com/Nenotriple", "2025")
         proc.add_menu_path("<Image>/Filters/Enhance")
         # radio buttons defined in GUI region handle model and scope.
