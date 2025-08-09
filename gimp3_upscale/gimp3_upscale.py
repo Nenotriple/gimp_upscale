@@ -170,17 +170,14 @@ def _export_layer_only_to_temp(image: Gimp.Image, layer: Gimp.Layer) -> str:
     export_proc = pdb.lookup_procedure('file-png-export')
     if export_proc is None:
         raise RuntimeError("Missing 'file-png-export' procedure.")
-
     # Snapshot current visibility of all layers
     layers = list(image.get_layers())
     vis_map = [(l, l.get_visible()) for l in layers]
-
     try:
         # Hide all, show only requested layer
         for l in layers:
             l.set_visible(False)
         layer.set_visible(True)
-
         # Export the image composite (now effectively just this layer)
         file = Gio.File.new_for_path(temp_file)
         cfg = export_proc.create_config()
@@ -195,7 +192,6 @@ def _export_layer_only_to_temp(image: Gimp.Image, layer: Gimp.Layer) -> str:
                 l.set_visible(v)
             except Exception:
                 pass
-
     return temp_file
 
 
@@ -203,7 +199,6 @@ def _export_layer_only_to_temp(image: Gimp.Image, layer: Gimp.Layer) -> str:
 #region Compose
 
 
-# Helpers to reduce duplication across compose operations.
 def _image_layer_type(image: Gimp.Image) -> Gimp.ImageType:
     return Gimp.ImageType.RGBA_IMAGE if image.get_base_type() == Gimp.ImageBaseType.RGB else Gimp.ImageType.GRAYA_IMAGE
 
@@ -287,21 +282,16 @@ def ai_upscale(procedure, run_mode, image, drawables, config, data):
         )
         Gimp.message(msg)
         return _return_error(procedure, Gimp.PDBStatusType.EXECUTION_ERROR, msg)
-
     # Use local defaults instead of config-backed properties
     current_model = model_options[0]
     scope_mode = "entire"  # 'entire' | 'selection' | 'layer'
-
     # Interactive UI
     if run_mode == Gimp.RunMode.INTERACTIVE:
-
-
         #region GUI
         # --- Dialog ---
         GimpUi.init('python-fu-ai-upscale')
         dialog = GimpUi.ProcedureDialog(procedure=procedure, config=config)
         dialog.fill(None)  # Only 'output_factor' remains as a real argument
-
         # --- Model radios ---
         frame = Gtk.Frame.new(_txt("Model"))
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
@@ -313,25 +303,20 @@ def ai_upscale(procedure, run_mode, image, drawables, config, data):
                 radio_group = btn
             if stem == current_model:
                 btn.set_active(True)
-
             def _on_toggle(button, s=stem):
                 nonlocal current_model
                 if button.get_active():
                     current_model = s
-
             btn.connect('toggled', _on_toggle)
             vbox.pack_start(btn, False, False, 0)
         dialog.get_content_area().pack_start(frame, False, False, 6)
-
         # --- Scope radios ---
         scope_frame = Gtk.Frame.new(_txt("Scope"))
         scope_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
         scope_frame.add(scope_box)
-
         rb_entire = Gtk.RadioButton.new_with_label_from_widget(None, _txt("Entire image"))
         rb_selection = Gtk.RadioButton.new_with_label_from_widget(rb_entire, _txt("Selection only"))
         rb_layer = Gtk.RadioButton.new_with_label_from_widget(rb_entire, _txt("Layer only"))
-
         rb_entire.set_active(scope_mode == "entire")
         rb_selection.set_active(scope_mode == "selection")
         rb_layer.set_active(scope_mode == "layer")
@@ -344,12 +329,10 @@ def ai_upscale(procedure, run_mode, image, drawables, config, data):
         rb_entire.connect('toggled', _on_scope_toggle, "entire")
         rb_selection.connect('toggled', _on_scope_toggle, "selection")
         rb_layer.connect('toggled', _on_scope_toggle, "layer")
-
         scope_box.pack_start(rb_entire, False, False, 0)
         scope_box.pack_start(rb_selection, False, False, 0)
         scope_box.pack_start(rb_layer, False, False, 0)
         dialog.get_content_area().pack_start(scope_frame, False, False, 6)
-
         dialog.show_all()
         # --- Run & close ---
         if not dialog.run():
@@ -357,13 +340,10 @@ def ai_upscale(procedure, run_mode, image, drawables, config, data):
             return procedure.new_return_values(Gimp.PDBStatusType.CANCEL, GLib.Error())
         dialog.destroy()
         #endregion
-
-
     # Non-interactive or interactive continues:
     output_factor = float(config.get_property('output_factor'))
     if not drawables:
         return _return_error(procedure, Gimp.PDBStatusType.EXECUTION_ERROR, "No drawable selected.")
-
     # Do the work
     Gimp.context_push()
     image.undo_group_start()
@@ -374,7 +354,6 @@ def ai_upscale(procedure, run_mode, image, drawables, config, data):
                 temp_input = _export_layer_only_to_temp(image, drawable)
             else:
                 temp_input = _export_drawable_to_temp(drawable)  # exports the image composite
-
             temp_output = tempfile.mktemp(suffix=".png")
             upscaled_image = None
             try:
@@ -413,10 +392,6 @@ def ai_upscale(procedure, run_mode, image, drawables, config, data):
     return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
 
 
-#endregion
-#region Registration
-
-
 #region AIUpscale
 
 
@@ -425,8 +400,10 @@ class AIUpscale(Gimp.PlugIn):
     def do_set_i18n(self, procname):
         return True, 'gimp30-python', None
 
+
     def do_query_procedures(self):
         return ['python-fu-ai-upscale']
+
 
     def do_create_procedure(self, name):
         proc = Gimp.ImageProcedure.new(self, name, Gimp.PDBProcType.PLUGIN, ai_upscale, None)
