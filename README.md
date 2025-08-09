@@ -3,140 +3,138 @@
   gimp_upscale
 </h1>
 
-
 <p align="center">
-  Upscale directly within GIMP using realesrgan-ncnn-vulkan
+  Upscale directly within GIMP (2.10 and 3.0) using realesrgan-ncnn-vulkan
 </p>
-
 
 ![Compare_split_test](https://github.com/user-attachments/assets/63584ff7-6bc5-4307-a0f6-1a9aa6864303)
 
-
 ![GitHub repo size](https://img.shields.io/github/repo-size/Nenotriple/gimp_upscale)
-[![Hits](https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2FNenotriple%2Fgimp_upscale&count_bg=%2379C83D&title_bg=%23555555&icon=&icon_color=%23E7E7E7&title=hits&edge_flat=false)](https://hits.seeyoufarm.com)
 ![GitHub all release downloads](https://img.shields.io/github/downloads/Nenotriple/gimp_upscale/total)
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/Nenotriple/gimp_upscale)
 
-
 # Features
 
-
+- Works with GIMP 2.10 and GIMP 3.0
 - Choose between 6 built-in models:
   - `realesr-animevideov3-x4`, `RealESRGAN_General_x4_v3`,
   - `realesrgan-x4plus`, `realesrgan-x4plus-anime`,
   - `UltraSharp-4x`, `AnimeSharp-4x`
-- Upscale the entire layer, or just the selection.
-- Scale the output to any factor from 0.1x to 8x
-- Create a copy of the original selection when upscaling just the selection.
+- Upscale the entire image/layer, or only the selection.
+- Scale the output to any factor from 0.1x to 8x.
 - Cleanly upscale transparent alpha channels.
-- Use any other custom 4x ESRGAN model.
-
+- Use any other custom 4x ESRGAN model (.bin/.param NCNN).
 
 <details>
 <summary>Adding your own custom ESRGAN models to the plug-in...</summary>
-  
-- Add your own models (NCNN) to the `resrgan/models` folder.
-  - Additional models can be found at https://openmodeldb.info/
-  - At this time, only `4x`/`x4` models are supported.
-  - Please ensure the custom model includes a `model.param` and a `model.bin` file.
-    - `.pth` model format is *not* supported.
-  - Models can be converted to NCNN format with tools like:
-    - [Chainner,](https://github.com/chaiNNer-org/chaiNNer) or [custom scripts](https://github.com/xinntao/Real-ESRGAN-ncnn-vulkan/issues/59#issuecomment-2078688728)
+
+- Add your own models (NCNN) to the `resrgan/models` folder inside the plug-in you installed:
+  - For GIMP 2.10: `.../plug-ins/gimp2_upscale/resrgan/models`
+  - For GIMP 3.0: `.../plug-ins/gimp3_upscale/resrgan/models`
+- Additional models can be found at https://openmodeldb.info/
+- At this time, only `4x`/`x4` models are supported.
+- Each model must include a matching pair: `model.param` and `model.bin` (same filename stem).
+  - `.pth` model format is not supported.
+- Models can be converted to NCNN format with tools like:
+  - [Chainner](https://github.com/chaiNNer-org/chaiNNer) or [custom scripts](https://github.com/xinntao/Real-ESRGAN-ncnn-vulkan/issues/59#issuecomment-2078688728)
 </details>
-
-
-> [!NOTE]
-> - Please see this [issue page](https://github.com/Nenotriple/gimp_upscale/issues/6) if you're interested in testing a MacOS version, let me know how it works!
 
 <br>
 
+# Upscale Previews
+
+<br>
 
 # 💾 Install
-![Static Badge](https://img.shields.io/badge/GIMP-2.10%2B-green)
+> [!WARNING]
+> - Vulkan-compatible GPU required.
 
-
-![Static Badge](https://img.shields.io/badge/Windows-blue)
-![Static Badge](https://img.shields.io/badge/Linux-orange)
-
+![Static Badge](https://img.shields.io/badge/Windows-blue) ![Static Badge](https://img.shields.io/badge/Linux-orange)
 
 ![Static Badge](https://img.shields.io/badge/Intel-blue) ![Static Badge](https://img.shields.io/badge/AMD-red) ![Static Badge](https://img.shields.io/badge/Nvidia-green)
 
+---
 
-### Method 1
 1) Download the [latest release](https://github.com/Nenotriple/gimp_upscale/releases)
-2) Extract the zip file to your GIMP plugins directory
+   - `gimp2_upscale.zip` for GIMP 2.10
+   - `gimp3_upscale.zip` for GIMP 3.0
+2) Extract the plug-in folder into your GIMP plug-ins directory
 3) Restart GIMP
-
-
-### Method 2
-1) Clone this repo
-2) Open GIMP and go to: `GIMP > Edit > Preferences > Folders > Plug-ins`
-3) Add the repo path to your plug-in folders
-4) Restart GIMP
 
 ### Extra info
 <details>
 <summary>Find your GIMP plug-in directory...</summary>
 
-- You can always find you plug-in folder from:
+- You can always **find your plug-in folder** from:
   - `GIMP > Edit > Preferences > Folders > Plug-ins`
 - Default directory for Windows:
+  - `C:\Users\%USERNAME%\AppData\Roaming\GIMP\3.0\plug-ins`
+  - `C:\Program Files\GIMP 2\lib\gimp\3.0\plug-ins`
   - `C:\Users\%USERNAME%\AppData\Roaming\GIMP\2.10\plug-ins`
   - `C:\Program Files\GIMP 2\lib\gimp\2.0\plug-ins`
 - Default directory for Linux:
   - `~/.config/GIMP/2.10/plug-ins`
-  - `~/.gimp-2.10/plug-ins`
-
+  - `~/.config/GIMP/3.0/plug-ins`
 </details>
-
 
 <details>
 <summary>Example directory structure...</summary>
-  
-GIMP plug-ins must be in a folder structure like this:
+
+GIMP plug-ins must be in a folder structure where the script filename matches the parent folder:
 
 ```plaintext
 plug-ins
 |
-└── gimp_upscale
-    |
-    └── gimp_upscale.py
+├── gimp2_upscale
+│   ├── gimp2_upscale.py
+│   └── resrgan
+│       ├── realesrgan-ncnn-vulkan(.exe)
+│       └── models
+│           ├── model.param
+│           └── model.bin
+|
+└── gimp3_upscale
+    ├── gimp3_upscale.py
+    └── resrgan
+        ├── realesrgan-ncnn-vulkan(.exe)
+        └── models
+            ├── model.param
+            └── model.bin
 ```
-
 </details>
-
 
 <details>
 <summary>Additional information for Linux...</summary>
-  
-Setting up Python in GIMP on Linux may require additional steps.
 
-If you're having trouble, you can check the resources below:
-- The official [GIMP download page](https://www.gimp.org/downloads/).
-  - The flatpak version of GIMP should come with Python support.
-- Prebuilt GIMP Appimages; eg. [From here,](https://github.com/aferrero2707/gimp-appimage/releases/tag/continuous) or [from here,](https://github.com/TasMania17/Gimp-Appimages-Made-From-Debs/releases/tag/Gimp-v3.0.0rc1) etc.
-- Install `gimp-python` from your package manager.
-
+- The flatpak version of GIMP usually includes Python support.
+- For GIMP 2.10, some distros require installing `gimp-python`.
 </details>
 
-
 <br>
-
 
 # 📝 Usage
 
-
 1) Open an image in GIMP
-2) Go to `Filters > Enhance > AI Upscale (NCNN)...`
-3) Choose the desired settings and click `OK`
-4) Wait for the image to be upscaled
-
+2) Go to `Filters > Enhance > AI Upscale…`
+3) Adjust options as needed
+4) Click Run/OK and wait for processing
 
 <br>
 
+# 🌟 Projects Using `gimp_upscale`
+
+Here are some awesome projects that have used `gimp_upscale`:
+
+| Creator | Description | Project Link |
+| - | - | - |
+| [@typokiow](https://next.nexusmods.com/profile/typokiow?gameId=7587) | **HQ Oblivion in-game map** — Replace the world map making it sharper and more legible without altering the original aesthetic.  | https://www.nexusmods.com/oblivionremastered/mods/1598?tab=description |
+
+> 🎨 Have you used `gimp_upscale` in a project?
+> [Open an issue](https://github.com/Nenotriple/gimp_upscale/issues) to be featured here!
+
+<br>
 
 # 👥 Thanks!
 
-- [GIMP](https://www.gimp.org/) - *GPL-3.0*
-
-- [xinntao - Real-ESRGAN_portable](https://github.com/xinntao/Real-ESRGAN#portable-executable-files-ncnn) - *BSD-3-Clause license*
+- [GIMP](https://www.gimp.org/) - GPL-3.0
+- [xinntao - Real-ESRGAN_portable](https://github.com/xinntao/Real-ESRGAN#portable-executable-files-ncnn) - BSD-3-Clause license
