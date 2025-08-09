@@ -1,3 +1,5 @@
+<!-- markdownlint-disable MD033 -->
+
 <h1 align="center">
   <img src="images/icon.png" alt="icon" width="70">
   gimp_upscale
@@ -141,6 +143,7 @@ plug-ins/
             ├── model.param
             └── model.bin
 ```
+
 </details>
 
 <details>
