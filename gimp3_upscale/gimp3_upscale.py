@@ -44,13 +44,37 @@ def _return_error(procedure, status: Gimp.PDBStatusType, message: str):
     return procedure.new_return_values(status, err)
 
 
-def _safe_remove(path: str):
+def _del_file(path: str):
     """Silently remove a file if it exists."""
     try:
         if path and os.path.isfile(path):
             os.remove(path)
     except Exception:
         pass
+
+
+def _progress_start(message: str):
+    """Initialize and show progress in the status bar."""
+    try:
+        Gimp.progress_init(message)
+    except Exception:
+        pass
+    Gimp.progress_set_text(message)
+    try:
+        Gimp.progress_update(0.0)
+    except Exception:
+        pass
+
+
+def _progress(message: str, fraction: float | None = None):
+    """Update status text and optionally progress fraction [0..1]."""
+    Gimp.progress_set_text(message)
+    if fraction is not None:
+        f = max(0.0, min(1.0, float(fraction)))
+        try:
+            Gimp.progress_update(f)
+        except Exception:
+            pass
 
 
 #endregion
@@ -134,7 +158,7 @@ def _run_resrgan(temp_input: str, temp_output: str, model: str):
         proc = subprocess.Popen(
             [exe_path, "-i", temp_input, "-o", temp_output, "-n", model],
             cwd=RESRGAN_DIR,
-            shell=False,
+            shell=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
         )
@@ -272,6 +296,7 @@ def ai_upscale(procedure, run_mode, image, drawables, config, data):
         )
         Gimp.message(msg)
         return _return_error(procedure, Gimp.PDBStatusType.EXECUTION_ERROR, msg)
+
     # Use local defaults instead of config-backed properties
     current_model = model_options[0]
     scope_mode = "entire"  # 'entire' | 'selection' | 'layer'
@@ -280,6 +305,7 @@ def ai_upscale(procedure, run_mode, image, drawables, config, data):
         #region GUI
         # --- Dialog ---
         GimpUi.init('python-fu-ai-upscale')
+        _progress("AI Upscale: choose model and scope…")
         dialog = GimpUi.ProcedureDialog(procedure=procedure, config=config)
         dialog.fill(None)  # Only 'output_factor' remains as a real argument
         # --- Model radios ---
@@ -330,50 +356,61 @@ def ai_upscale(procedure, run_mode, image, drawables, config, data):
             return procedure.new_return_values(Gimp.PDBStatusType.CANCEL, GLib.Error())
         dialog.destroy()
         #endregion
+
     # Non-interactive or interactive continues:
     output_factor = float(config.get_property('output_factor'))
     if not drawables:
         return _return_error(procedure, Gimp.PDBStatusType.EXECUTION_ERROR, "No drawable selected.")
+
     # Do the work
     Gimp.context_push()
     image.undo_group_start()
+    # Initialize status bar progress
+    _progress_start("AI Upscale: starting…")
     try:
-        for drawable in drawables:
-            Gimp.progress_set_text("Exporting layer…")
+        total = len(drawables)
+        for idx, drawable in enumerate(drawables):
+            base = idx / total
+            span = 1.0 / total
+            _progress(f"Exporting layer {idx+1}/{total}…", base + 0.02 * span)
             if scope_mode == "layer":
                 temp_input = _export_layer_only_to_temp(image, drawable)
             else:
                 temp_input = _export_drawable_to_temp(drawable)  # exports the image composite
+
             temp_output = tempfile.mktemp(suffix=".png")
             upscaled_image = None
             try:
-                Gimp.progress_set_text(f"Upscaling with {current_model}…")
+                _progress(f"Upscaling with {current_model}…", base + 0.15 * span)
                 _run_resrgan(temp_input, temp_output, current_model)
-                Gimp.progress_set_text("Loading upscaled image…")
+                _progress("Loading upscaled image…", base + 0.60 * span)
                 upscaled_image = _load_png_as_image(temp_output)
                 upscaled_layers = upscaled_image.get_layers()
                 if not upscaled_layers:
                     raise RuntimeError("Upscaled image has no layers.")
                 upscaled_layer = upscaled_layers[0]
                 if scope_mode == "selection":
-                    Gimp.progress_set_text("Compositing into selection…")
+                    _progress("Compositing into selection…", base + 0.75 * span)
                     _handle_upscaled_selection(image, upscaled_layer)
                 elif scope_mode == "layer":
-                    Gimp.progress_set_text("Compositing layer…")
+                    _progress("Compositing layer…", base + 0.80 * span)
                     _handle_upscaled_layer_only(image, upscaled_layer, output_factor)
                 else:
-                    Gimp.progress_set_text("Compositing result…")
+                    _progress("Compositing result…", base + 0.80 * span)
                     _handle_upscaled_layer(image, upscaled_layer, output_factor)
+                _progress(f"Finalizing {idx+1}/{total}…", base + 0.95 * span)
             finally:
-                _safe_remove(temp_input)
-                _safe_remove(temp_output)
+                _del_file(temp_input)
+                _del_file(temp_output)
                 try:
                     if upscaled_image is not None:
                         upscaled_image.delete()
                 except Exception:
                     pass
+            # Mark per-drawable completion
+            _progress(f"Completed {idx+1}/{total}", (idx + 1) / total)
         Gimp.displays_flush()
-        Gimp.progress_set_text("AI Upscaling complete!")
+        _progress("AI Upscaling complete!", 1.0)
     except Exception as e:
         return _return_error(procedure, Gimp.PDBStatusType.EXECUTION_ERROR, f"Upscaling failed: {e}")
     finally:
@@ -382,6 +419,7 @@ def ai_upscale(procedure, run_mode, image, drawables, config, data):
     return procedure.new_return_values(Gimp.PDBStatusType.SUCCESS, GLib.Error())
 
 
+#endregion
 #region AIUpscale
 
 
