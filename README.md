@@ -11,6 +11,8 @@
 
 ![Cover image](images/cover.png)
 
+<img src="images/compare_1x-d.png" alt="d" width="250"> <img src="images/compare_1x-e.png" alt="e" width="250"> <img src="images/compare_1x-f.png" alt="f" width="250">
+
 ![GitHub repo size](https://img.shields.io/github/repo-size/Nenotriple/gimp_upscale) ![GitHub all release downloads](https://img.shields.io/github/downloads/Nenotriple/gimp_upscale/total) ![GitHub release (latest by date)](https://img.shields.io/github/v/release/Nenotriple/gimp_upscale)
 
 ## Features
