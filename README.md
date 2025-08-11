@@ -98,6 +98,14 @@
 2. Extract the plug-in folder into your GIMP plug-ins directory.
 3. Restart GIMP.
 
+> [!NOTE]
+> **Linux note:** After extracting to your GIMP plug-ins folder, you must mark the script as executable so GIMP can detect it:
+>
+> ```bash
+> chmod +x gimp2_upscale.py
+> chmod +x gimp3_upscale.py
+> ```
+
 ## 📝 Usage
 
 1. Open an image in GIMP.
@@ -145,16 +153,6 @@ plug-ins/
             ├── model.param
             └── model.bin
 ```
-
-</details>
-
-<details>
-<summary>Additional information for Linux...</summary>
-
-- The Flatpak build of GIMP usually includes Python support.
-- For GIMP 2.10, some distros require installing `gimp-python`.
-
-</details>
 
 ---
 
