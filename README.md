@@ -1,7 +1,3 @@
-<!-- markdownlint-disable MD033 -->
-
-<img src="images/icon.png" alt="icon" width="70">
-
 # GIMP Upscale Plugin – AI Image Upscaler (RealESRGAN) for GIMP 2.10 & 3.0
 
 **GIMP Upscale** is an open-source plugin that brings advanced AI-powered image upscaling to GIMP. Using RealESRGAN technology, this plugin lets you enhance image resolution, improve photo quality, and upscale anime artwork with ease, supporting custom ESRGAN models and both Windows and Linux platforms.
