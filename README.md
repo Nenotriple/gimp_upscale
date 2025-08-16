@@ -147,6 +147,8 @@ plug-ins/
             └── model.bin
 ```
 
+</details>
+
 ---
 
 ## 🌟 Projects Using gimp_upscale
