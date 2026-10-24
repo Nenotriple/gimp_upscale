@@ -19,6 +19,8 @@ import tempfile
 import subprocess
 from pathlib import Path
 import platform  # added
+import math
+from enum import Enum
 
 import gi  # type: ignore
 gi.require_version('Gimp', '3.0')
@@ -86,6 +88,44 @@ SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 RESRGAN_DIR = os.path.join(SCRIPT_DIR, "resrgan")
 MODELS_DIR = os.path.join(RESRGAN_DIR, "models")
 DEFAULT_OUTPUT_FACTOR = 1.0
+
+
+class OutputSizingMode(Enum):
+    DPI = "dpi"
+    RATIO = "ratio"
+
+
+def _positive_finite(value: float, label: str) -> float:
+    value = float(value)
+    if not math.isfinite(value) or value <= 0:
+        raise ValueError(f"{label} must be a positive, finite number.")
+    return value
+
+
+def _image_resolution(image: Gimp.Image) -> tuple[float, float]:
+    resolution = image.get_resolution()
+    if len(resolution) == 3:
+        valid_resolution, xres, yres = resolution
+        if not valid_resolution:
+            raise RuntimeError("Could not read the image resolution.")
+    else:
+        xres, yres = resolution
+    return (_positive_finite(xres, "Horizontal resolution"),
+            _positive_finite(yres, "Vertical resolution"))
+
+
+def _output_size(image: Gimp.Image, mode: OutputSizingMode,
+                 value: float) -> tuple[int, int]:
+    """Calculate canvas pixels from the original image, for preview and output."""
+    value = _positive_finite(value, "Output DPI" if mode is OutputSizingMode.DPI else "Output ratio")
+    if mode is OutputSizingMode.DPI:
+        xres, yres = _image_resolution(image)
+        width, height = image.get_width(), image.get_height()
+        return (max(1, round(width / xres * value)),
+                max(1, round(height / yres * value)))
+    if mode is OutputSizingMode.RATIO:
+        return _scaled_canvas_size(image, value)
+    raise ValueError("Unknown output sizing mode.")
 
 
 # Platform detection
@@ -251,12 +291,14 @@ def _scale_and_copy(src: Gimp.Layer, dst: Gimp.Layer, width: int, height: int) -
     dst.update(0, 0, width, height)
 
 
-def _handle_upscaled_layer(image: Gimp.Image, upscaled_layer: Gimp.Layer, output_factor: float) -> Gimp.Layer:
+def _handle_upscaled_layer(image: Gimp.Image, upscaled_layer: Gimp.Layer,
+                           final_size: tuple[int, int]) -> Gimp.Layer:
     """
-    Insert the upscaled layer into image, resize canvas to factor * original, and fit content.
+    Insert the upscaled layer into image, resize canvas, and fit content.
     """
-    final_w, final_h = _scaled_canvas_size(image, output_factor)
-    image.resize(final_w, final_h, 0, 0)
+    final_w, final_h = final_size
+    if (image.get_width(), image.get_height()) != final_size:
+        image.resize(final_w, final_h, 0, 0)
     new_layer = _new_layer(image, "AI Upscaled Layer", final_w, final_h)
     _scale_and_copy(upscaled_layer, new_layer, final_w, final_h)
     return new_layer
@@ -274,12 +316,14 @@ def _handle_upscaled_selection(image: Gimp.Image, upscaled_layer: Gimp.Layer) ->
     return new_layer
 
 
-def _handle_upscaled_layer_only(image: Gimp.Image, upscaled_layer: Gimp.Layer, output_factor: float) -> Gimp.Layer:
+def _handle_upscaled_layer_only(image: Gimp.Image, upscaled_layer: Gimp.Layer,
+                                final_size: tuple[int, int]) -> Gimp.Layer:
     """
     Insert upscaled layer and resize canvas like 'Entire image' without selection masking.
     """
-    final_w, final_h = _scaled_canvas_size(image, output_factor)
-    image.resize(final_w, final_h, 0, 0)
+    final_w, final_h = final_size
+    if (image.get_width(), image.get_height()) != final_size:
+        image.resize(final_w, final_h, 0, 0)
     new_layer = _new_layer(image, "AI Upscaled (Layer only)", final_w, final_h)
     _scale_and_copy(upscaled_layer, new_layer, final_w, final_h)
     return new_layer
@@ -308,17 +352,82 @@ def ai_upscale(procedure, run_mode, image, drawables, config, data):
         Gimp.message(msg)
         return _return_error(procedure, Gimp.PDBStatusType.EXECUTION_ERROR, msg)
 
-    # Use local defaults instead of config-backed properties
+    original_width, original_height = image.get_width(), image.get_height()
+    try:
+        xres, yres = _image_resolution(image)
+    except RuntimeError as e:
+        return _return_error(procedure, Gimp.PDBStatusType.EXECUTION_ERROR, str(e))
+    except ValueError as e:
+        return _return_error(procedure, Gimp.PDBStatusType.CALLING_ERROR, str(e))
+
     current_model = model_options[0]
     scope_mode = "entire"  # 'entire' | 'selection' | 'layer'
+    sizing_mode = OutputSizingMode.RATIO
+    output_value = config.get_property('output_factor')
     # Interactive UI
     if run_mode == Gimp.RunMode.INTERACTIVE:
         #region GUI
-        # --- Dialog ---
         GimpUi.init('python-fu-ai-upscale')
-        _progress("AI Upscale: choose model and scope...")
+        _progress("AI Upscale: choose model and scope")
         dialog = GimpUi.ProcedureDialog(procedure=procedure, config=config)
-        dialog.fill(None)  # Only 'output_factor' remains as a real argument
+        sizing_frame = Gtk.Frame.new(_txt("Output size"))
+        sizing_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        sizing_frame.add(sizing_box)
+        unit = image.get_unit()
+        unit_factor = unit.get_factor()
+        # A pixel unit has no physical size; display the print size in inches.
+        unit_label = unit.get_abbreviation() if unit_factor > 0 else "in"
+        unit_factor = unit_factor if unit_factor > 0 else 1.0
+        print_width = original_width / xres * unit_factor
+        print_height = original_height / yres * unit_factor
+        print_label = Gtk.Label.new(_txt("Print size: ") +
+                                    f"{print_width:.4f} × {print_height:.4f} {unit_label}")
+        print_label.set_xalign(0)
+        sizing_box.pack_start(print_label, False, False, 0)
+        rb_dpi = Gtk.RadioButton.new_with_label_from_widget(None, _txt("Output DPI"))
+        rb_ratio = Gtk.RadioButton.new_with_label_from_widget(rb_dpi, _txt("Output ratio"))
+        rb_ratio.set_active(True)
+        dpi_entry = Gtk.Entry()
+        dpi_entry.set_text(f"{xres:g}")
+        ratio_entry = Gtk.Entry()
+        ratio_entry.set_text(f"{output_value:g}")
+        for button, entry in ((rb_dpi, dpi_entry), (rb_ratio, ratio_entry)):
+            row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+            row.pack_start(button, False, False, 0)
+            row.pack_start(entry, True, True, 0)
+            sizing_box.pack_start(row, False, False, 0)
+        pixel_label = Gtk.Label.new("")
+        pixel_label.set_xalign(0)
+        sizing_box.pack_start(pixel_label, False, False, 0)
+
+        def update_preview(*_args):
+            nonlocal sizing_mode
+            sizing_mode = (OutputSizingMode.DPI if rb_dpi.get_active()
+                           else OutputSizingMode.RATIO)
+            enabled = scope_mode != "selection"
+            dpi_entry.set_sensitive(enabled and sizing_mode is OutputSizingMode.DPI)
+            ratio_entry.set_sensitive(enabled and sizing_mode is OutputSizingMode.RATIO)
+            rb_dpi.set_sensitive(enabled)
+            rb_ratio.set_sensitive(enabled)
+            if not enabled:
+                size = original_width, original_height
+            else:
+                try:
+                    value = float(dpi_entry.get_text() if sizing_mode is OutputSizingMode.DPI
+                                  else ratio_entry.get_text())
+                    if sizing_mode is OutputSizingMode.RATIO and not 0.05 <= value <= 8.0:
+                        raise ValueError("Output ratio must be between 0.05 and 8.")
+                    size = _output_size(image, sizing_mode, value)
+                except (ValueError, OverflowError):
+                    pixel_label.set_text(_txt("Enter a valid positive value (ratio: 0.05-8)."))
+                    return
+            pixel_label.set_text(_txt("Output pixels: ") + f"{size[0]} × {size[1]}")
+
+        rb_dpi.connect('toggled', update_preview)
+        rb_ratio.connect('toggled', update_preview)
+        dpi_entry.connect('changed', update_preview)
+        ratio_entry.connect('changed', update_preview)
+        dialog.get_content_area().pack_start(sizing_frame, False, False, 6)
         # --- Model radios ---
         frame = Gtk.Frame.new(_txt("Model"))
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
@@ -352,6 +461,7 @@ def ai_upscale(procedure, run_mode, image, drawables, config, data):
             nonlocal scope_mode
             if btn.get_active():
                 scope_mode = val
+                update_preview()
 
         rb_entire.connect('toggled', _on_scope_toggle, "entire")
         rb_selection.connect('toggled', _on_scope_toggle, "selection")
@@ -360,16 +470,36 @@ def ai_upscale(procedure, run_mode, image, drawables, config, data):
         scope_box.pack_start(rb_selection, False, False, 0)
         scope_box.pack_start(rb_layer, False, False, 0)
         dialog.get_content_area().pack_start(scope_frame, False, False, 6)
+        update_preview()
         dialog.show_all()
         # --- Run & close ---
         if not dialog.run():
             dialog.destroy()
             return procedure.new_return_values(Gimp.PDBStatusType.CANCEL, GLib.Error())
+        if scope_mode != "selection":
+            try:
+                output_value = float(dpi_entry.get_text() if sizing_mode is OutputSizingMode.DPI
+                                     else ratio_entry.get_text())
+            except ValueError:
+                output_value = float('nan')
         dialog.destroy()
         #endregion
 
-    # Non-interactive or interactive continues:
-    output_factor = float(config.get_property('output_factor'))
+    # Keep the original image dimensions and resolution for every drawable.
+    if scope_mode == "selection":
+        final_size = original_width, original_height
+        new_resolution = None
+    else:
+        try:
+            output_value = _positive_finite(output_value,
+                                            "Output DPI" if sizing_mode is OutputSizingMode.DPI else "Output ratio")
+            if sizing_mode is OutputSizingMode.RATIO and not 0.05 <= output_value <= 8.0:
+                raise ValueError("Output ratio must be between 0.05 and 8.")
+            final_size = _output_size(image, sizing_mode, output_value)
+        except (ValueError, OverflowError) as e:
+            return _return_error(procedure, Gimp.PDBStatusType.CALLING_ERROR, str(e))
+        new_resolution = ((output_value, output_value) if sizing_mode is OutputSizingMode.DPI
+                          else (xres * output_value, yres * output_value))
     if not drawables:
         return _return_error(procedure, Gimp.PDBStatusType.EXECUTION_ERROR, "No drawable selected.")
 
@@ -405,10 +535,10 @@ def ai_upscale(procedure, run_mode, image, drawables, config, data):
                     _handle_upscaled_selection(image, upscaled_layer)
                 elif scope_mode == "layer":
                     _progress("Compositing layer...", base + 0.80 * span)
-                    _handle_upscaled_layer_only(image, upscaled_layer, output_factor)
+                    _handle_upscaled_layer_only(image, upscaled_layer, final_size)
                 else:
                     _progress("Compositing result...", base + 0.80 * span)
-                    _handle_upscaled_layer(image, upscaled_layer, output_factor)
+                    _handle_upscaled_layer(image, upscaled_layer, final_size)
                 _progress(f"Finalizing {idx+1}/{total}...", base + 0.95 * span)
             finally:
                 _del_file(temp_input)
@@ -420,6 +550,8 @@ def ai_upscale(procedure, run_mode, image, drawables, config, data):
                     pass
             # Mark per-drawable completion
             _progress(f"Completed {idx+1}/{total}", (idx + 1) / total)
+        if new_resolution is not None and not image.set_resolution(*new_resolution):
+            raise RuntimeError("Could not update image resolution.")
         Gimp.displays_flush()
         _progress("AI Upscaling complete!", 1.0)
     except Exception as e:
@@ -456,11 +588,11 @@ class AIUpscale(Gimp.PlugIn):
         proc.set_menu_label(_txt("AI _Upscale..."))
         proc.set_attribution("github.com/Nenotriple", "github.com/Nenotriple", "2025")
         proc.add_menu_path("<Image>/Filters/Enhance")
-        # radio buttons defined in GUI region handle model and scope.
+        # Radio buttons in the interactive dialog handle model, scope, and sizing.
         proc.add_double_argument(
             "output_factor",
-            _txt("Output _Factor"),
-            _txt("Final output size relative to original size (entire image mode)"),
+            _txt("Output _Ratio"),
+            _txt("Pixel scale multiplier for noninteractive runs and interactive ratio mode"),
             0.05, 8.0, DEFAULT_OUTPUT_FACTOR,
             GObject.ParamFlags.READWRITE
         )
